@@ -18,55 +18,116 @@
   --muted: #8c8478;
   --border: #2a2620;
   --border-light: #d8cfbe;
+  --header-h: 60px;
+  --footer-h: 44px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: var(--bg); color: var(--paper); font-family: 'Inter', sans-serif; min-height: 100vh; }
+html { -webkit-text-size-adjust: 100%; }
+html, body {
+  background: var(--bg);
+  color: var(--paper);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
 body {
   background:
-    radial-gradient(ellipse at top right, rgba(255, 91, 31, 0.08), transparent 50%),
-    radial-gradient(ellipse at bottom left, rgba(255, 184, 77, 0.05), transparent 50%),
+    radial-gradient(ellipse at top right, rgba(255,91,31,0.08), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(255,184,77,0.05), transparent 50%),
     var(--bg);
+  display: flex;
+  flex-direction: column;
 }
 
+/* ===== HEADER ===== */
 header {
   border-bottom: 1px solid var(--border);
-  padding: 22px 40px;
+  padding: 14px 16px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  height: var(--header-h);
+  flex-shrink: 0;
 }
 header .logo {
   font-family: 'Fraunces', serif;
   font-weight: 800;
-  font-size: 28px;
+  font-size: 22px;
   letter-spacing: -0.02em;
 }
 header .logo span { color: var(--accent); font-style: italic; }
-header .tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+header .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  display: none; /* oculto en mobile */
+}
 
+/* ===== MAIN ===== */
 main {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 0;
-  min-height: calc(100vh - 75px);
+  flex: 1;
+  display: flex;
+  flex-direction: column; /* mobile: columna */
 }
 
-/* ===== Panel de control ===== */
+/* ===== ASIDE / PANEL ===== */
 aside {
-  border-right: 1px solid var(--border);
-  padding: 28px;
-  overflow-y: auto;
-  max-height: calc(100vh - 75px);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 16px;
   background: rgba(255,255,255,0.01);
+  overflow-y: visible;
 }
+
+/* Toggle del panel en mobile */
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  margin-bottom: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.panel-toggle-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-toggle-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.panel-toggle-icon {
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 0.25s;
+}
+.panel-toggle-icon.open { transform: rotate(180deg); }
+
+.panel-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s ease;
+}
+.panel-body.open { max-height: 3000px; }
+
 aside h2 {
   font-family: 'Fraunces', serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: var(--accent-2);
   margin-bottom: 14px;
+  margin-top: 24px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -76,10 +137,16 @@ aside h2::before {
   width: 6px; height: 6px;
   background: var(--accent);
   border-radius: 50%;
+  flex-shrink: 0;
 }
-aside section { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px dashed var(--border); }
+aside section {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed var(--border);
+}
 aside section:last-of-type { border-bottom: none; }
 
+/* ===== CONTROLES ===== */
 label {
   display: block;
   font-family: 'JetBrains Mono', monospace;
@@ -97,29 +164,31 @@ input[type="text"], select, textarea {
   background: var(--bg-2);
   border: 1px solid var(--border);
   color: var(--paper);
-  padding: 11px 13px;
+  padding: 12px 13px;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 16px; /* 16px previene zoom en iOS */
   border-radius: 4px;
   transition: border 0.2s;
+  -webkit-appearance: none;
 }
 input[type="text"]:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
 }
 input[type="number"] {
-  width: 70px;
+  width: 80px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   color: var(--paper);
-  padding: 8px 10px;
+  padding: 10px 10px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
+  font-size: 16px;
   border-radius: 4px;
+  -webkit-appearance: none;
 }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 input[type="color"] {
-  width: 100%; height: 38px;
+  width: 100%; height: 42px;
   border: 1px solid var(--border);
   background: var(--bg-2);
   cursor: pointer; border-radius: 4px;
@@ -134,7 +203,7 @@ input[type="file"]::file-selector-button {
   background: var(--bg-2);
   border: 1px solid var(--border);
   color: var(--accent-2);
-  padding: 8px 14px;
+  padding: 10px 14px;
   margin-right: 10px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
@@ -154,7 +223,7 @@ input[type="file"]::file-selector-button {
   background: var(--accent);
   color: var(--ink);
   border: none;
-  padding: 14px;
+  padding: 15px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   font-weight: 700;
@@ -163,10 +232,13 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   border-radius: 4px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+.btn:active { transform: scale(0.97); }
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(255, 91, 31, 0.3);
+  box-shadow: 0 6px 20px rgba(255,91,31,0.3);
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn.secondary {
@@ -176,7 +248,7 @@ input[type="file"]::file-selector-button {
 }
 .btn.secondary:hover { border-color: var(--accent-2); color: var(--accent-2); }
 .btn-group { display: flex; gap: 8px; margin-top: 12px; }
-.btn-group .btn { padding: 11px; font-size: 11px; }
+.btn-group .btn { padding: 12px; font-size: 11px; }
 
 .segmented {
   display: flex;
@@ -191,14 +263,15 @@ input[type="file"]::file-selector-button {
   background: transparent;
   border: none;
   color: var(--muted);
-  padding: 8px;
+  padding: 10px 6px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   cursor: pointer;
   border-radius: 3px;
   transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 .segmented button.active {
   background: var(--accent);
@@ -214,80 +287,84 @@ input[type="file"]::file-selector-button {
   line-height: 1.5;
 }
 
-/* ===== Stage (zona de previsualización) ===== */
+/* ===== STAGE ===== */
 .stage {
-  padding: 32px 40px;
+  flex: 1;
+  padding: 20px 16px;
   overflow-y: auto;
-  max-height: calc(100vh - 75px);
 }
 .stage-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  margin-bottom: 18px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
 .stage-title {
   font-family: 'Fraunces', serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
+  line-height: 1.2;
 }
 .stage-title span { color: var(--accent); font-style: italic; }
 .stage-meta {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
 }
 
+/* ===== EMPTY STATE ===== */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  min-height: 50vh;
   text-align: center;
   color: var(--muted);
+  padding: 24px 0;
 }
 .empty-state h3 {
   font-family: 'Fraunces', serif;
-  font-size: 42px;
+  font-size: 28px;
   font-weight: 400;
   font-style: italic;
   color: var(--paper);
-  margin-bottom: 14px;
-  max-width: 600px;
-  line-height: 1.15;
+  margin-bottom: 12px;
+  line-height: 1.2;
 }
 .empty-state p {
-  max-width: 480px;
-  font-size: 14px;
+  max-width: 320px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--muted);
 }
 .empty-state .dot {
   color: var(--accent);
-  font-size: 60px;
+  font-size: 48px;
   line-height: 1;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
+/* ===== LOADING ===== */
 .loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 80px 0;
+  padding: 60px 0;
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
+  text-align: center;
 }
 .spinner {
-  width: 36px; height: 36px;
+  width: 34px; height: 34px;
   border: 2px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
@@ -296,32 +373,40 @@ input[type="file"]::file-selector-button {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .error {
-  background: rgba(255, 91, 31, 0.08);
+  background: rgba(255,91,31,0.08);
   border-left: 3px solid var(--accent);
-  padding: 16px 20px;
+  padding: 14px 16px;
   color: var(--paper);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
-.error strong { color: var(--accent); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; display: block; margin-bottom: 4px; }
+.error strong {
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  display: block;
+  margin-bottom: 4px;
+}
 
-/* ===== Modo: solo texto ===== */
+/* ===== TEXTO OUTPUT ===== */
 .text-output {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 .text-slide {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 24px;
+  padding: 18px 16px;
   position: relative;
 }
 .text-slide .slide-num {
   position: absolute;
-  top: 16px; right: 20px;
+  top: 14px; right: 16px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: var(--accent);
@@ -329,22 +414,23 @@ input[type="file"]::file-selector-button {
 }
 .text-slide h4 {
   font-family: 'Fraunces', serif;
-  font-size: 20px;
-  margin-bottom: 12px;
+  font-size: 18px;
+  margin-bottom: 10px;
   color: var(--accent-2);
+  padding-right: 80px;
 }
 .text-slide p {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.65;
   color: var(--paper);
   white-space: pre-wrap;
 }
 .text-slide .copy-btn {
-  margin-top: 14px;
+  margin-top: 12px;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   text-transform: uppercase;
@@ -355,11 +441,56 @@ input[type="file"]::file-selector-button {
 }
 .text-slide .copy-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
 
-/* ===== Modo: imágenes ===== */
+/* ===== DRAG & DROP ===== */
+.text-slide, .image-card {
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.text-slide[draggable="true"], .image-card[draggable="true"] { cursor: grab; }
+.text-slide.dragging, .image-card.dragging { opacity: 0.4; cursor: grabbing; }
+.text-slide.drag-over, .image-card.drag-over {
+  box-shadow: inset 0 4px 0 var(--accent);
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.drag-handle::before {
+  content: '⋮⋮';
+  color: var(--accent);
+  font-size: 14px;
+  letter-spacing: -2px;
+}
+
+.order-banner {
+  background: rgba(255,184,77,0.08);
+  border: 1px dashed rgba(255,184,77,0.3);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-banner::before { content: '↕'; font-size: 14px; color: var(--accent); }
+
+/* ===== IMAGEN OUTPUT ===== */
 .images-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr; /* mobile: 1 columna */
+  gap: 16px;
 }
 .image-card {
   display: flex;
@@ -373,7 +504,7 @@ input[type="file"]::file-selector-button {
   font-size: 10px;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
 }
 .image-card .label-row span:first-child { color: var(--accent); }
 .image-card canvas {
@@ -388,7 +519,7 @@ input[type="file"]::file-selector-button {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--paper);
-  padding: 8px;
+  padding: 10px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   text-transform: uppercase;
@@ -396,19 +527,102 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
   border-radius: 3px;
   transition: all 0.15s;
+  touch-action: manipulation;
 }
 .image-card .download:hover { background: var(--accent); color: var(--ink); }
 
-.download-all {
-  margin-bottom: 20px;
+.download-all { margin-bottom: 16px; }
+
+/* ===== FOOTER ===== */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  height: auto;
+  min-height: var(--footer-h);
+  flex-shrink: 0;
+}
+footer .footer-by {
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper);
+  letter-spacing: -0.01em;
+}
+footer .footer-by span {
+  color: var(--accent);
+  font-style: italic;
+}
+footer .footer-vibes {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+footer .footer-vibes em {
+  color: var(--accent-2);
+  font-style: normal;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 900px) {
-  main { grid-template-columns: 1fr; }
-  aside { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
-  .stage { max-height: none; padding: 24px; }
-  header { padding: 16px 20px; }
+/* ===================================================
+   BREAKPOINTS — mobile first
+   ================================================ */
+
+/* Tablet ≥ 600px */
+@media (min-width: 600px) {
+  header { padding: 16px 28px; height: 68px; }
+  header .logo { font-size: 26px; }
+  header .tag { display: block; }
+  aside { padding: 24px 28px; }
+  .stage { padding: 24px 28px; }
+  .empty-state h3 { font-size: 34px; }
+  .images-grid { grid-template-columns: repeat(2, 1fr); }
+  footer { padding: 12px 28px; }
+  .panel-body { max-height: none !important; } /* En tablet+ siempre visible */
+  .panel-toggle { display: none; }            /* ocultar toggle */
+}
+
+/* Desktop ≥ 960px: layout side by side */
+@media (min-width: 960px) {
+  header { padding: 20px 40px; height: 72px; }
+  header .logo { font-size: 28px; }
+  main {
+    flex-direction: row;        /* panel + stage en paralelo */
+    height: calc(100vh - 72px - var(--footer-h));
+    overflow: hidden;
+  }
+  aside {
+    width: 360px;
+    min-width: 320px;
+    max-width: 400px;
+    flex-shrink: 0;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    height: 100%;
+    padding: 28px;
+  }
+  .stage {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 32px 40px;
+  }
+  .empty-state h3 { font-size: 42px; }
+  .empty-state p { max-width: 480px; font-size: 14px; }
+  .images-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .stage-title { font-size: 22px; }
+  footer { padding: 10px 40px; }
+}
+
+/* Wide ≥ 1280px */
+@media (min-width: 1280px) {
+  aside { width: 400px; max-width: 420px; }
 }
 </style>
 </head>
@@ -421,11 +635,18 @@ input[type="file"]::file-selector-button {
 
 <main>
   <!-- ========== PANEL DE CONTROL ========== -->
-  <aside>
+<aside>
+    <!-- Toggle visible solo en mobile -->
+    <div class="panel-toggle" id="panelToggle">
+      <div class="panel-toggle-label">Configuración</div>
+      <div class="panel-toggle-icon" id="panelIcon">▾</div>
+    </div>
+    <div class="panel-body" id="panelBody">
+
     <section>
       <h2>Banda</h2>
       <label for="bandName">Nombre</label>
-      <input type="text" id="bandName" placeholder="Ej: blink182" autocomplete="off">
+      <input type="text" id="bandName" placeholder="Ej: Soda Stereo" autocomplete="off">
       <div class="help-text">Datos desde MusicBrainz + Wikipedia</div>
     </section>
 
@@ -523,6 +744,8 @@ input[type="file"]::file-selector-button {
         <button id="resetBtn" class="btn secondary">Reset</button>
       </div>
     </section>
+
+    </div><!-- /panel-body -->
   </aside>
 
   <!-- ========== STAGE ========== -->
@@ -534,12 +757,17 @@ input[type="file"]::file-selector-button {
     <div id="output">
       <div class="empty-state">
         <div class="dot">●</div>
-        <h3>Carruseles musicales con <em>datos verídicos</em>.</h3>
-        <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información (origen, estilo, discografía, último lanzamiento) en formato listo para Instagram.</p>
+        <h3>Creador de<br><em>Carruseles</em></h3>
+        <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información en formato listo para Instagram.</p>
       </div>
     </div>
   </div>
 </main>
+
+<footer>
+  <div class="footer-by">Realizado por <span>EZMEZ</span></div>
+  <div class="footer-vibes">— <em>Aguante Blink</em> —</div>
+</footer>
 
 <script>
 // ============================================================================
@@ -610,7 +838,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('output').innerHTML = `
     <div class="empty-state">
       <div class="dot">●</div>
-      <h3>Carruseles musicales con <em>datos verídicos</em>.</h3>
+      <h3>Creador de<br><em>Carruseles</em></h3>
       <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información en formato listo para Instagram.</p>
     </div>`;
   document.getElementById('stageTitle').innerHTML = 'Pendiente<span>.</span>';
@@ -668,8 +896,32 @@ async function searchBand(name) {
 
   await sleep(1100);
 
-  // 2. Detalles del artista (tags, country, area, life-span)
-  const detail = await fetchMB(`artist/${artist.id}?inc=tags+genres`);
+  // 2. Detalles del artista (tags, country, area, life-span, miembros)
+  const detail = await fetchMB(`artist/${artist.id}?inc=tags+genres+artist-rels`);
+
+  // Extraer miembros desde relations type "member of band"
+  const members = [];
+  if (detail.relations) {
+    detail.relations.forEach(rel => {
+      if (rel.type === 'member of band' && rel.direction === 'backward' && rel.artist) {
+        const m = {
+          name: rel.artist.name,
+          begin: rel['begin'] ? rel['begin'].slice(0, 4) : null,
+          end: rel['end'] ? rel['end'].slice(0, 4) : null,
+          ended: rel.ended,
+          instruments: (rel.attributes || []).filter(a =>
+            !['original', 'additional', 'guest'].includes(a.toLowerCase())
+          ),
+        };
+        members.push(m);
+      }
+    });
+  }
+  // Ordenar: actuales primero, luego por año de inicio
+  members.sort((a, b) => {
+    if (a.ended !== b.ended) return a.ended ? 1 : -1;
+    return (a.begin || '9999').localeCompare(b.begin || '9999');
+  });
 
   await sleep(1100);
 
@@ -702,6 +954,7 @@ async function searchBand(name) {
       date: a['first-release-date'],
       year: (a['first-release-date'] || '').slice(0, 4),
     })),
+    members: members,
     wiki: wiki ? wiki.extract : null,
   };
 }
@@ -712,7 +965,7 @@ async function searchBand(name) {
 function composeSlides(data, count) {
   const slides = [];
 
-  // Bloques de contenido posibles
+  // === BLOQUES DE CONTENIDO ===
   const bandName = data.name.toUpperCase();
   const origin = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
   const start = (data.lifeSpan.begin || '').slice(0, 4);
@@ -735,20 +988,25 @@ function composeSlides(data, count) {
     : 'No hay lanzamientos recientes registrados';
 
   const trajectory = buildTrajectory(data);
+  const membersText = buildMembersText(data.members);
+  const historyText = buildHistoryText(data);
 
-  // Distribución según cantidad de slides
+  // === DISTRIBUCIÓN ===
   if (count === 1) {
+    // Todo en una sola: muy denso
     slides.push({
       title: bandName,
       body:
-`${origin}
-${yearLine}
+`${origin} · ${yearLine}
 
 ESTILO
 ${styleList}
 
+INTEGRANTES
+${membersText.short}
+
 DISCOGRAFÍA
-${albumLines.slice(0, 8).join('\n')}${data.albums.length > 8 ? `\n+ ${data.albums.length - 8} álbumes más` : ''}
+${albumLines.slice(0, 6).join('\n')}${data.albums.length > 6 ? `\n+ ${data.albums.length - 6} álbumes más` : ''}
 
 ÚLTIMO LANZAMIENTO
 ${latestLine}`
@@ -756,45 +1014,95 @@ ${latestLine}`
   } else if (count === 2) {
     slides.push({
       title: bandName,
-      body: `${origin}\n${yearLine}\n\nESTILO\n${styleList}\n\n${styleDesc}`
+      body: `${origin}\n${yearLine}\n\nESTILO\n${styleList}\n\n${styleDesc}\n\nINTEGRANTES\n${membersText.short}`
     });
     slides.push({
       title: 'DISCOGRAFÍA',
       body: `${albumLines.join('\n')}\n\nÚLTIMO LANZAMIENTO\n${latestLine}`
     });
   } else if (count === 3) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${trajectory}` });
-    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${albumLines.join('\n')}\n\n— — —\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${historyText}` });
+    slides.push({ title: 'ESTILO E INTEGRANTES', body: `${styleList}\n\n${styleDesc}\n\n— INTEGRANTES —\n${membersText.short}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${albumLines.join('\n')}\n\n— — —\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
   } else if (count === 4) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${historyText}` });
     slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + '\n\n' + trajectory });
+    slides.push({ title: 'INTEGRANTES', body: membersText.full });
+    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + `\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+  } else if (count === 5) {
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
+    slides.push({ title: 'HISTORIA', body: historyText });
+    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+    slides.push({ title: 'INTEGRANTES', body: membersText.full });
+    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + `\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+  } else if (count === 6) {
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
+    slides.push({ title: 'HISTORIA', body: historyText });
+    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+    slides.push({ title: 'INTEGRANTES', body: membersText.full });
+    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') });
     slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
   } else {
-    // 5+: distribución modular
+    // 7+: dividimos discografía si hace falta
     slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
-    slides.push({ title: 'ORIGEN', body: trajectory });
+    slides.push({ title: 'HISTORIA', body: historyText });
     slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+    slides.push({ title: 'INTEGRANTES', body: membersText.full });
 
-    // Discografía dividida en varias slides si hay muchos álbumes
-    const discoSlots = count - 4; // slides restantes para disco + última
+    const discoSlots = count - 5; // -4 anteriores y -1 para último lanzamiento
     const albumsPerSlide = Math.ceil(albumLines.length / discoSlots);
     for (let i = 0; i < discoSlots; i++) {
       const chunk = albumLines.slice(i * albumsPerSlide, (i + 1) * albumsPerSlide);
-      if (chunk.length === 0) {
-        slides.push({ title: 'DISCOGRAFÍA', body: 'Sin más álbumes' });
-      } else {
-        slides.push({
-          title: discoSlots > 1 ? `DISCOGRAFÍA · ${i + 1}/${discoSlots}` : 'DISCOGRAFÍA',
-          body: chunk.join('\n')
-        });
-      }
+      slides.push({
+        title: discoSlots > 1 ? `DISCOGRAFÍA · ${i + 1}/${discoSlots}` : 'DISCOGRAFÍA',
+        body: chunk.length ? chunk.join('\n') : 'Sin más álbumes'
+      });
     }
     slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
   }
 
   return slides;
+}
+
+function buildMembersText(members) {
+  if (!members || members.length === 0) {
+    return { short: 'Sin integrantes registrados', full: 'Sin integrantes registrados en MusicBrainz' };
+  }
+
+  // Versión corta: solo nombres (máx 6)
+  const short = members.slice(0, 6).map(m => m.name).join(' · ');
+
+  // Versión completa: nombre + instrumentos + período
+  const full = members.map(m => {
+    const inst = m.instruments && m.instruments.length
+      ? ` — ${m.instruments.slice(0, 3).join(', ')}`
+      : '';
+    let period = '';
+    if (m.begin && m.end) period = ` (${m.begin}–${m.end})`;
+    else if (m.begin && !m.ended) period = ` (desde ${m.begin})`;
+    else if (m.end) period = ` (hasta ${m.end})`;
+    return `• ${m.name}${inst}${period}`;
+  }).join('\n');
+
+  return { short, full };
+}
+
+function buildHistoryText(data) {
+  if (data.wiki) {
+    // Tomar 3-4 oraciones del resumen wiki
+    const sentences = data.wiki.split('. ').slice(0, 4).join('. ');
+    return sentences.endsWith('.') ? sentences : sentences + '.';
+  }
+
+  // Fallback armado desde MB
+  const albumCount = data.albums.length;
+  const memberCount = data.members.length;
+  const start = (data.lifeSpan.begin || '').slice(0, 4);
+  const parts = [];
+  if (start) parts.push(`Formados en ${start}${data.beginArea ? ` en ${data.beginArea}` : ''}.`);
+  if (memberCount) parts.push(`Pasaron ${memberCount} integrante${memberCount > 1 ? 's' : ''} por la banda.`);
+  if (albumCount) parts.push(`Editaron ${albumCount} álbum${albumCount > 1 ? 'es' : ''} de estudio entre ${data.albums[0].year} y ${data.albums[albumCount - 1].year}.`);
+  return parts.length ? parts.join(' ') : 'Historia no documentada en las fuentes consultadas.';
 }
 
 function buildStyleDescription(genres, wiki) {
@@ -911,23 +1219,29 @@ async function generate() {
 // ============================================================================
 function renderTextSlides() {
   const output = document.getElementById('output');
-  let html = '';
+  let html = `
+    <div class="order-banner">Arrastrá las tarjetas para reordenar el carrusel</div>
+    <div class="download-all">
+      <button class="btn secondary" id="copyAllBtn">Copiar todas las slides (en orden)</button>
+    </div>
+    <div class="text-output" id="slidesContainer">`;
+
   state.slides.forEach((slide, i) => {
     html += `
-      <div class="text-slide">
-        <div class="slide-num">SLIDE ${i + 1}/${state.slides.length}</div>
+      <div class="text-slide" draggable="true" data-index="${i}">
+        <div class="drag-handle">Arrastrar</div>
+        <div class="slide-num">SLIDE <span class="slide-pos">${i + 1}</span>/${state.slides.length}</div>
         <h4>${escapeHTML(slide.title)}</h4>
         <p>${escapeHTML(slide.body)}</p>
         <button class="copy-btn" data-i="${i}">Copiar</button>
       </div>`;
   });
-  // Botón para copiar TODO
-  html = `
-    <div class="download-all">
-      <button class="btn secondary" id="copyAllBtn">Copiar todas las slides</button>
-    </div>
-    <div class="text-output">${html}</div>`;
+  html += '</div>';
   output.innerHTML = html;
+
+  enableDragAndDrop('#slidesContainer', '.text-slide', () => {
+    updateSlidePositions();
+  });
 
   output.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -939,10 +1253,11 @@ function renderTextSlides() {
     });
   });
   document.getElementById('copyAllBtn').addEventListener('click', () => {
-    const all = state.slides.map((s, i) => `===== SLIDE ${i + 1} =====\n${s.title}\n\n${s.body}`).join('\n\n');
+    const ordered = getOrderedSlides();
+    const all = ordered.map((s, i) => `===== SLIDE ${i + 1} =====\n${s.title}\n\n${s.body}`).join('\n\n');
     navigator.clipboard.writeText(all);
     document.getElementById('copyAllBtn').textContent = '✓ Todo copiado';
-    setTimeout(() => document.getElementById('copyAllBtn').textContent = 'Copiar todas las slides', 1500);
+    setTimeout(() => document.getElementById('copyAllBtn').textContent = 'Copiar todas las slides (en orden)', 1500);
   });
 }
 
@@ -961,16 +1276,17 @@ function getAspectDims() {
 function renderImageSlides() {
   const output = document.getElementById('output');
   let html = `
+    <div class="order-banner">Arrastrá las tarjetas para reordenar el carrusel</div>
     <div class="download-all">
-      <button class="btn secondary" id="downloadAllBtn">Descargar todas como ZIP individual</button>
+      <button class="btn secondary" id="downloadAllBtn">Descargar todas las imágenes (en orden)</button>
     </div>
-    <div class="images-grid">`;
+    <div class="images-grid" id="slidesContainer">`;
 
   state.slides.forEach((slide, i) => {
     html += `
-      <div class="image-card">
+      <div class="image-card" draggable="true" data-index="${i}">
         <div class="label-row">
-          <span>Slide ${i + 1}/${state.slides.length}</span>
+          <span class="slide-label">Slide <span class="slide-pos">${i + 1}</span>/${state.slides.length}</span>
           <span>${getAspectDims().w}×${getAspectDims().h}</span>
         </div>
         <canvas id="canvas-${i}"></canvas>
@@ -980,37 +1296,135 @@ function renderImageSlides() {
   html += '</div>';
   output.innerHTML = html;
 
-  // Dibujar cada canvas
+  // Dibujar cada canvas con su posición actual
   state.slides.forEach((slide, i) => {
     drawSlide(document.getElementById(`canvas-${i}`), slide, i);
   });
 
-  // Bindings
+  enableDragAndDrop('#slidesContainer', '.image-card', () => {
+    updateSlidePositions();
+    redrawAllCanvases();
+  });
+
   output.querySelectorAll('.download').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.i);
       const canvas = document.getElementById(`canvas-${i}`);
+      // Posición visible actual (puede haber cambiado por drag)
+      const card = canvas.closest('.image-card');
+      const pos = parseInt(card.querySelector('.slide-pos').textContent);
       const link = document.createElement('a');
-      link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${i + 1}.png`;
+      link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${pos}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     });
   });
 
   document.getElementById('downloadAllBtn').addEventListener('click', () => {
-    state.slides.forEach((s, i) => {
+    const ordered = getOrderedSlidesWithOriginalIndex();
+    ordered.forEach((item, newPos) => {
       setTimeout(() => {
-        const canvas = document.getElementById(`canvas-${i}`);
+        const canvas = document.getElementById(`canvas-${item.originalIndex}`);
         const link = document.createElement('a');
-        link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${i + 1}.png`;
+        link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${newPos + 1}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-      }, i * 300);
+      }, newPos * 300);
     });
   });
 }
 
-function drawSlide(canvas, slide, index) {
+// ============================================================================
+//  DRAG & DROP — reordenar slides
+// ============================================================================
+let dragState = { source: null };
+
+function enableDragAndDrop(containerSel, itemSel, onReorder) {
+  const container = document.querySelector(containerSel);
+  if (!container) return;
+
+  container.querySelectorAll(itemSel).forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      dragState.source = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      container.querySelectorAll(itemSel).forEach(el => el.classList.remove('drag-over'));
+      if (onReorder) onReorder();
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (item !== dragState.source) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if (dragState.source && item !== dragState.source) {
+        // Insertar antes o después según posición vertical del mouse
+        const rect = item.getBoundingClientRect();
+        const after = (e.clientY - rect.top) > rect.height / 2;
+        if (after) item.parentNode.insertBefore(dragState.source, item.nextSibling);
+        else item.parentNode.insertBefore(dragState.source, item);
+      }
+    });
+  });
+}
+
+function getOrderedSlides() {
+  // Lee el orden actual del DOM y devuelve los slides en ese orden
+  const container = document.getElementById('slidesContainer');
+  if (!container) return state.slides;
+  const ordered = [];
+  container.querySelectorAll('[data-index]').forEach(el => {
+    const i = parseInt(el.dataset.index);
+    ordered.push(state.slides[i]);
+  });
+  return ordered;
+}
+
+function getOrderedSlidesWithOriginalIndex() {
+  const container = document.getElementById('slidesContainer');
+  if (!container) return state.slides.map((s, i) => ({ slide: s, originalIndex: i }));
+  const ordered = [];
+  container.querySelectorAll('[data-index]').forEach(el => {
+    const i = parseInt(el.dataset.index);
+    ordered.push({ slide: state.slides[i], originalIndex: i });
+  });
+  return ordered;
+}
+
+function updateSlidePositions() {
+  // Renumera los badges según el orden actual del DOM
+  const container = document.getElementById('slidesContainer');
+  if (!container) return;
+  const items = container.querySelectorAll('[data-index]');
+  const total = items.length;
+  items.forEach((el, idx) => {
+    const posEls = el.querySelectorAll('.slide-pos');
+    posEls.forEach(p => p.textContent = idx + 1);
+  });
+}
+
+function redrawAllCanvases() {
+  // En modo imagen, redibuja todos los canvas con la posición actual
+  // (para que el footer "01/04" refleje el nuevo orden)
+  const ordered = getOrderedSlidesWithOriginalIndex();
+  ordered.forEach((item, newPos) => {
+    const canvas = document.getElementById(`canvas-${item.originalIndex}`);
+    if (canvas) drawSlide(canvas, item.slide, newPos, ordered.length);
+  });
+}
+
+// ============================================================================
+//  RENDER CANVAS
+// ============================================================================
+function drawSlide(canvas, slide, index, totalOverride) {
   const { w, h } = getAspectDims();
   canvas.width = w;
   canvas.height = h;
@@ -1096,11 +1510,12 @@ function drawSlide(canvas, slide, index) {
   });
 
   // Footer: número de slide
+  const total = totalOverride || state.slides.length;
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.4;
   ctx.font = `500 ${Math.max(18, w * 0.018)}px 'JetBrains Mono', monospace`;
   ctx.textAlign = 'left';
-  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(state.slides.length).padStart(2, '0')}`, padding / 2 + 20, h - padding / 2);
+  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`, padding / 2 + 20, h - padding / 2);
   ctx.textAlign = 'right';
   ctx.fillText('BAND·CAROUSEL', w - padding / 2 - 20, h - padding / 2);
   ctx.globalAlpha = 1;
@@ -1164,6 +1579,21 @@ function wrapText(ctx, text, maxWidth) {
 function escapeHTML(str) {
   return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ============================================================================
+//  TOGGLE PANEL MOBILE
+// ============================================================================
+(function() {
+  const toggle = document.getElementById('panelToggle');
+  const body   = document.getElementById('panelBody');
+  const icon   = document.getElementById('panelIcon');
+  if (!toggle) return;
+
+  toggle.addEventListener('click', () => {
+    const isOpen = body.classList.toggle('open');
+    icon.classList.toggle('open', isOpen);
+  });
+})();
 </script>
 
 </body>
