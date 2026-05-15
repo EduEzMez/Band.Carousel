@@ -1264,63 +1264,131 @@ function updateLoading(main, sub) {
 }
 
 // ============================================================================
-//  HUMANIZACIÓN VÍA CLAUDE API
+//  HUMANIZACIÓN + BÚSQUEDA WEB VÍA CLAUDE API
 // ============================================================================
 async function humanizeWithClaude(data, slideCount) {
-  const albumList = data.albums.map(a => `${a.year} — ${a.title}`).join('\n');
+  const albumList  = data.albums.map(a => `${a.year} — ${a.title}`).join('\n');
   const memberList = data.members.slice(0, 10).map(m => {
-    const inst = m.instruments.length ? ` (${m.instruments.slice(0,2).join(', ')})` : '';
+    const inst   = m.instruments.length ? ` (${m.instruments.slice(0,2).join(', ')})` : '';
     const period = m.begin ? (m.ended ? ` [${m.begin}–${m.end}]` : ` [desde ${m.begin}]`) : '';
     return `${m.name}${inst}${period}`;
   }).join(', ') || 'No documentados';
 
-  const prompt = `Sos un community manager apasionado por la música que escribe carruseles de Instagram sobre bandas. 
-Tu tono: cálido, entusiasta, con personalidad. No usás frases corporativas ni listas frías. Escribís como alguien que genuinamente escucha y siente la música.
-Usás mayúsculas con criterio (no todo en caps). Sin emojis. Sin hashtags. Sin asteriscos ni markdown.
+  // ── PASO 1: Claude busca en la web y procesa los resultados ──────────────
+  updateLoading('Investigando la banda…', 'Claude está buscando info actualizada');
 
-Datos de la banda:
-NOMBRE: ${data.name}
-ORIGEN: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
-AÑO DE INICIO: ${(data.lifeSpan.begin || '').slice(0,4) || 'desconocido'}
-AÑO FIN: ${data.lifeSpan.ended ? (data.lifeSpan.end || '').slice(0,4) : 'aún activos'}
-GÉNEROS/ESTILOS: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
-INTEGRANTES: ${memberList}
-DISCOGRAFÍA: 
-${albumList || 'Sin álbumes registrados'}
-ÚLTIMO LANZAMIENTO: ${data.albums.length ? data.albums[data.albums.length-1].title + ' (' + data.albums[data.albums.length-1].year + ')' : 'desconocido'}
-RESUMEN WIKIPEDIA: ${data.wiki || 'No disponible'}
+  const searchPrompt = `Necesito que investigues la banda "${data.name}" para escribir un carrusel de Instagram atractivo y bien informado.
 
-Generá un JSON con EXACTAMENTE estas claves. Responde SOLO el JSON sin ningún texto extra ni backticks:
-{
-  "portada_tag": "frase corta de 4-7 palabras tipo 'Hoy te presentamos a:' o 'Una banda que no para de crecer' (con naturalidad)",
-  "historia": "2-3 párrafos narrativos sobre el origen, contexto y trayectoria. Que suene a que lo escribió alguien que los conoce. Explayate. Máximo 300 palabras.",
-  "estilo": "1-2 párrafos explicando su sonido y propuesta. Sin palabras técnicas vacías. Describí cómo suena en términos que cualquiera pueda sentir. Máximo 150 palabras.",
-  "integrantes_intro": "1 oración introductoria cálida antes de listar la formación (ej: 'Detrás del sonido hay personas con historias propias:')",
-  "discografia_intro": "1-2 oraciones que enmarquen la discografía con contexto emocional o artístico antes de listarla",
-  "ultimo_contexto": "2-3 oraciones que expliquen qué significa este último lanzamiento para la banda, su evolución, qué representa. Con pasión.",
-  "cierre": "1-2 oraciones de cierre tipo llamada a la acción orgánica, que invite a escucharlos. Sin el típico 'seguinos en redes'."
-}`;
+Datos base que ya tengo:
+- Origen: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
+- Activos desde: ${(data.lifeSpan.begin || '').slice(0,4) || '?'} ${data.lifeSpan.ended ? '(disueltos en ' + ((data.lifeSpan.end||'').slice(0,4)||'?') + ')' : '(aún activos)'}
+- Géneros: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
+- Integrantes conocidos: ${memberList}
+- Discografía MusicBrainz: ${albumList || 'ninguna registrada'}
+- Wikipedia: ${data.wiki ? data.wiki.slice(0,600) : 'no disponible'}
+
+Hacé búsquedas sobre esta banda para obtener:
+1. Historia de formación, contexto cultural, anécdotas relevantes
+2. Descripción real de su sonido con ejemplos concretos
+3. Hitos importantes: tours, premios, momentos clave
+4. Info sobre su último lanzamiento o actividad reciente
+5. Curiosidades o datos que los fans valoran
+
+Buscá en español si es una banda hispanohablante, en inglés si es internacional.`;
+
+  let webFindings = '';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Primera llamada: Claude busca con web_search
+    const searchRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        max_tokens: 2000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: searchPrompt }]
       })
     });
 
-    if (!res.ok) throw new Error('Claude API ' + res.status);
-    const apiData = await res.json();
-    const raw = apiData.content.map(c => c.text || '').join('');
-    // Limpiar posibles backticks
-    const clean = raw.replace(/```json|```/gi, '').trim();
-    return JSON.parse(clean);
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+
+      // Extraer texto de todos los bloques (text + tool_result)
+      const textBlocks = (searchData.content || [])
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('\n');
+
+      const toolResults = (searchData.content || [])
+        .filter(b => b.type === 'tool_result' || b.type === 'mcp_tool_result')
+        .map(b => (b.content?.[0]?.text || ''))
+        .join('\n');
+
+      webFindings = [textBlocks, toolResults].filter(Boolean).join('\n\n').slice(0, 3000);
+    }
   } catch(e) {
-    console.warn('Humanización falló, usando datos crudos:', e.message);
-    // Fallback: devuelve null, composeSlides usará el modo anterior
+    console.warn('Web search falló:', e.message);
+  }
+
+  // ── PASO 2: Claude redacta con todo el contexto ───────────────────────────
+  updateLoading('Redactando con IA…', 'Escribiendo el contenido del carrusel');
+
+  const writePrompt = `Sos un community manager apasionado por la música. Escribís carruseles de Instagram que la gente comparte porque se sienten auténticos, informativos y con personalidad real.
+
+Tu tono: cálido, entusiasta, directo. Nada corporativo. Sin emojis. Sin hashtags. Sin markdown ni asteriscos.
+Escribís en español rioplatense cuando aplica. Usás mayúsculas solo en nombres propios y comienzo de oración.
+
+════ DATOS DE LA BANDA: ${data.name.toUpperCase()} ════
+
+Origen: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
+Período: ${(data.lifeSpan.begin||'').slice(0,4)||'?'} ${data.lifeSpan.ended ? '→ ' + ((data.lifeSpan.end||'').slice(0,4)||'?') : '→ presente'}
+Géneros: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
+Integrantes: ${memberList}
+Discografía: ${albumList || 'sin álbumes registrados'}
+Último lanzamiento: ${data.albums.length ? data.albums[data.albums.length-1].title + ' (' + data.albums[data.albums.length-1].year + ')' : 'desconocido'}
+Wikipedia: ${data.wiki ? data.wiki.slice(0,500) : 'no disponible'}
+
+════ LO QUE ENCONTRÉ BUSCANDO EN LA WEB ════
+${webFindings || 'No se pudo obtener información adicional de la web.'}
+════════════════════════════════════════════
+
+Con TODA esa información, generá un JSON con exactamente estas claves.
+Respondé SOLO el JSON, sin texto previo, sin backticks, sin explicaciones:
+
+{
+  "portada_tag": "frase gancho de 5-8 palabras para la portada del carrusel. Tiene que generar curiosidad o emoción. No uses el nombre de la banda aquí.",
+  "historia": "Mínimo 3 párrafos bien desarrollados. Contá el origen con contexto (qué pasaba en esa ciudad/escena musical), cómo se formaron, los momentos clave de su carrera, la evolución. Incluí anécdotas si las encontraste. Que se sienta como una historia, no un currículum. Máximo 380 palabras.",
+  "estilo": "2 párrafos. Primero describí el sonido con metáforas y referencias concretas (qué sentís al escucharlos, a qué suena, qué bandas evoca sin decir 'suena a X'). Segundo párrafo sobre la propuesta lírica o conceptual. Máximo 180 palabras.",
+  "integrantes_intro": "Una oración que humanice a los integrantes antes de listarlos. Algo que hable de lo que cada uno aporta al colectivo.",
+  "discografia_intro": "2 oraciones que enmarquen la discografía como un viaje artístico, mencionando algún hito o evolución concreta.",
+  "ultimo_contexto": "3 oraciones sobre el último lanzamiento: qué representa para la banda, qué cambió o maduró, por qué vale la pena escucharlo ahora. Con convicción.",
+  "cierre": "2 oraciones de cierre. Una que invite a escucharlos con genuina recomendación. Otra que sea un dato curioso o reflexión que deje pensando."
+}`;
+
+  try {
+    const writeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: writePrompt }]
+      })
+    });
+
+    if (!writeRes.ok) throw new Error('Claude API ' + writeRes.status);
+    const writeData = await writeRes.json();
+    const raw   = (writeData.content || []).map(c => c.text || '').join('');
+    const clean = raw.replace(/```json|```/gi, '').trim();
+
+    // Extraer JSON incluso si hay texto rodeándolo
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON en respuesta');
+    return JSON.parse(jsonMatch[0]);
+
+  } catch(e) {
+    console.warn('Redacción falló, usando datos crudos:', e.message);
     return null;
   }
 }
