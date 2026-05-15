@@ -533,7 +533,108 @@ input[type="file"]::file-selector-button {
 
 .download-all { margin-bottom: 16px; }
 
-/* ===== FOOTER ===== */
+/* ===== PANEL DE SECCIONES (post-búsqueda) ===== */
+#sectionsPanel {
+  display: none;
+}
+#sectionsPanel.visible {
+  display: block;
+}
+.section-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.section-check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.section-check-item:hover {
+  border-color: var(--muted);
+}
+.section-check-item.checked {
+  border-color: var(--accent);
+  background: rgba(255,91,31,0.06);
+}
+.section-check-item input[type="checkbox"] {
+  display: none;
+}
+.check-box {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  background: transparent;
+}
+.section-check-item.checked .check-box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check-box::after {
+  content: '';
+  display: none;
+  width: 5px;
+  height: 9px;
+  border: 2px solid var(--ink);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.section-check-item.checked .check-box::after {
+  display: block;
+}
+.check-label {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--paper);
+}
+.check-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.section-check-item.checked .check-label {
+  color: var(--paper);
+}
+.section-check-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rebuild-note {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 10px;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.rebuild-note::before {
+  content: '↺';
+  color: var(--accent-2);
+  font-size: 12px;
+  flex-shrink: 0;
+}
 footer {
   border-top: 1px solid var(--border);
   padding: 12px 16px;
@@ -752,6 +853,15 @@ footer .footer-vibes em {
       </div>
     </section>
 
+    <!-- Panel de secciones — aparece tras la búsqueda -->
+    <section id="sectionsPanel">
+      <h2>Secciones encontradas</h2>
+      <div class="section-checks" id="sectionChecks">
+        <!-- Se genera dinámicamente tras la búsqueda -->
+      </div>
+      <div class="rebuild-note">Tildear o destildear reconstruye el carrusel al instante</div>
+    </section>
+
     </div><!-- /panel-body -->
   </aside>
 
@@ -781,16 +891,25 @@ footer .footer-vibes em {
 //  ESTADO
 // ============================================================================
 const state = {
-  mode: 'text',            // 'text' | 'image'
-  aspect: '1:1',           // '1:1' | '4:5' | '9:16'
-  bgStyle: 'overlay',      // 'overlay' | 'blur' | 'solid'
+  mode: 'text',
+  aspect: '1:1',
+  bgStyle: 'overlay',
   align: 'center',
   valign: 'middle',
-  bgImage: null,           // HTMLImageElement (fondo custom)
-  bandImg: null,           // HTMLImageElement (foto de la banda, Wikipedia)
-  bandImgMode: 'auto',     // 'auto' | 'off'
+  bgImage: null,
+  bandImg: null,
+  bandImgMode: 'auto',
   bandData: null,
+  humanizedCache: null,   // resultado de Claude API, se reutiliza al retildar
   slides: [],
+  activeSections: {       // qué secciones están activas
+    portada: true,
+    historia: true,
+    estilo: true,
+    integrantes: true,
+    discografia: true,
+    ultimo: true,
+  },
 };
 
 // ============================================================================
@@ -811,8 +930,9 @@ function bindSegmented(containerId, key, callback) {
 bindSegmented('modeSegmented', 'mode', () => {
   document.getElementById('imageSection').style.display = state.mode === 'image' ? '' : 'none';
   document.getElementById('textStyleSection').style.display = state.mode === 'image' ? '' : 'none';
+  if (state.bandData) rebuildCarousel();
 });
-bindSegmented('aspectSegmented', 'aspect');
+bindSegmented('aspectSegmented', 'aspect', () => { if (state.bandData) rebuildCarousel(); });
 bindSegmented('bgStyleSegmented', 'bgStyle');
 bindSegmented('alignSegmented', 'align');
 bindSegmented('vAlignSegmented', 'valign');
@@ -845,6 +965,10 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('bandName').value = '';
   state.bandData = null;
   state.slides = [];
+  state.humanizedCache = null;
+  Object.keys(state.activeSections).forEach(k => state.activeSections[k] = true);
+  document.getElementById('sectionsPanel').classList.remove('visible');
+  document.getElementById('sectionChecks').innerHTML = '';
   document.getElementById('output').innerHTML = `
     <div class="empty-state">
       <div class="dot">●</div>
@@ -1013,88 +1137,68 @@ async function searchBand(name) {
 // ============================================================================
 function composeSlides(data, count, h) {
   // h = objeto humanizado de Claude API (puede ser null → fallback a datos crudos)
-  const slides = [];
+  const AS = state.activeSections; // alias corto
 
-  // === BLOQUES BASE (siempre disponibles) ===
-  const bandName = data.name.toUpperCase();
-  const origin = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
-  const start = (data.lifeSpan.begin || '').slice(0, 4);
-  const end = (data.lifeSpan.ended && data.lifeSpan.end) ? data.lifeSpan.end.slice(0, 4) : null;
-  const yearLine = start
-    ? (end ? `Activos: ${start} — ${end}` : `Desde ${start} · en actividad`)
-    : 'Fechas no especificadas';
+  // === BLOQUES BASE ===
+  const bandName   = data.name.toUpperCase();
+  const origin     = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
+  const start      = (data.lifeSpan.begin || '').slice(0, 4);
+  const endY       = (data.lifeSpan.ended && data.lifeSpan.end) ? data.lifeSpan.end.slice(0, 4) : null;
+  const yearLine   = start ? (endY ? `${start} — ${endY}` : `Desde ${start}`) : '';
+  const originLine = [origin, yearLine].filter(Boolean).join(' · ');
 
-  const styles = data.genres.length ? data.genres : data.tags;
-  const styleList = styles.length ? styles.slice(0, 5).map(s => s.replace(/\b\w/g, c => c.toUpperCase())).join(' · ') : 'Estilo no clasificado';
-
+  const styles    = data.genres.length ? data.genres : data.tags;
   const albumLines = data.albums.length
     ? data.albums.map(a => `${a.year} · ${a.title}`)
     : ['Sin álbumes registrados en MusicBrainz'];
-
-  const latest = data.albums.length ? data.albums[data.albums.length - 1] : null;
-
+  const latest     = data.albums.length ? data.albums[data.albums.length - 1] : null;
   const membersText = buildMembersText(data.members);
 
-  // === TEXTOS — humanizados si existen, fallback si no ===
-  const portadaTag   = h?.portada_tag   || 'Te invitamos a conocer a:';
-  const historia     = h?.historia      || buildHistoryText(data);
-  const estilo       = h?.estilo        || (buildStyleDescription(styles, data.wiki) || styleList);
-  const integrIntro  = h?.integrantes_intro || 'La banda está formada por:';
-  const discoIntro   = h?.discografia_intro || 'Su camino discográfico:';
-  const ultimoCtx    = h?.ultimo_contexto   || (latest ? `${latest.title}, lanzado en ${latest.year}.` : 'Sin lanzamientos recientes.');
-  const cierre       = h?.cierre        || 'Buscalos y dale play.';
+  // === TEXTOS — humanizados o fallback ===
+  const portadaTag  = h?.portada_tag       || '';
+  const historia    = h?.historia          || buildHistoryText(data);
+  const estilo      = h?.estilo            || buildStyleDescription(styles, data.wiki) || styles.slice(0,4).join(' · ');
+  const integrIntro = h?.integrantes_intro || 'La banda está formada por:';
+  const discoIntro  = h?.discografia_intro || 'Su camino discográfico:';
+  const ultimoCtx   = h?.ultimo_contexto   || (latest ? `${latest.title} (${latest.year}).` : 'Sin lanzamientos recientes.');
+  const cierre      = h?.cierre            || 'Buscalos y dale play.';
 
-  // === DISTRIBUCIÓN ===
-  if (count === 1) {
-    slides.push({
-      title: bandName,
-      body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia.split('\n')[0]}\n\nINTEGRANTES\n${membersText.short}\n\nDISCOGRAFÍA\n${albumLines.slice(0,6).join('\n')}\n\nÚLTIMO LANZAMIENTO\n${ultimoCtx}`
-    });
-  } else if (count === 2) {
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
-  } else if (count === 3) {
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
-    slides.push({ title: 'ESTILO', body: `${estilo}\n\n${integrIntro}\n${membersText.short}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
-  } else if (count === 4) {
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
-    slides.push({ title: 'ESTILO', body: estilo });
-    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${ultimoCtx}` });
-  } else if (count === 5) {
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historia });
-    slides.push({ title: 'ESTILO', body: estilo });
-    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
-  } else if (count === 6) {
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historia });
-    slides.push({ title: 'ESTILO', body: estilo });
-    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}` });
-    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
-  } else {
-    // 7+: discografía se parte
-    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historia });
-    slides.push({ title: 'ESTILO', body: estilo });
-    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
+  // === ARMAR LISTA DE SECCIONES ACTIVAS ===
+  // Cada sección es un objeto { key, title, body }
+  // La portada siempre va primera y tiene layout especial
+  const pool = [];
 
-    const discoSlots = count - 5;
-    const albumsPerSlide = Math.ceil(albumLines.length / discoSlots);
-    for (let i = 0; i < discoSlots; i++) {
-      const chunk = albumLines.slice(i * albumsPerSlide, (i + 1) * albumsPerSlide);
-      slides.push({
-        title: discoSlots > 1 ? `DISCOGRAFÍA · ${i + 1}/${discoSlots}` : 'DISCOGRAFÍA',
-        body: (i === 0 ? discoIntro + '\n\n' : '') + (chunk.length ? chunk.join('\n') : 'Sin más álbumes')
-      });
-    }
-    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
+  // Portada — siempre presente, sin repetir el portadaTag en el título
+  pool.push({
+    key: 'portada',
+    title: bandName,
+    // body de la portada: SOLO el tag de gancho + origen · año
+    // (no repetimos el nombre porque ya está en title)
+    body: [portadaTag, originLine].filter(Boolean).join('\n'),
+  });
+
+  if (AS.historia) {
+    pool.push({ key: 'historia', title: 'HISTORIA', body: historia });
+  }
+  if (AS.estilo) {
+    pool.push({ key: 'estilo', title: 'ESTILO', body: estilo });
+  }
+  if (AS.integrantes && data.members.length > 0) {
+    pool.push({ key: 'integrantes', title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
+  }
+  if (AS.discografia) {
+    pool.push({ key: 'discografia', title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}` });
+  }
+  if (AS.ultimo && latest) {
+    pool.push({ key: 'ultimo', title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
   }
 
-  return slides;
+  // Si solo queda la portada, agregarle algo de info
+  if (pool.length === 1) {
+    pool[0].body = [portadaTag, originLine, '', historia.split('\n')[0] || ''].filter(Boolean).join('\n');
+  }
+
+  return pool;
 }
 
 function buildMembersText(members) {
@@ -1228,22 +1332,19 @@ async function generate() {
     state.bandData = data;
     state.bandImg = data.wikiImage || null;
 
-    // PASO 2 — Humanizar con Claude API
-    updateLoading('Redactando con IA…', 'Generando texto con personalidad');
+    // PASO 2 — Investigar + humanizar con Claude API
     const humanized = await humanizeWithClaude(data, count);
+    state.humanizedCache = humanized;
 
-    // PASO 3 — Componer slides con texto humanizado
-    state.slides = composeSlides(data, count, humanized);
+    // PASO 3 — Resetear secciones activas a todas encendidas
+    Object.keys(state.activeSections).forEach(k => state.activeSections[k] = true);
+
+    // PASO 4 — Construir panel de secciones y renderizar
+    buildSectionsPanel(data, humanized);
+    rebuildCarousel();
 
     document.getElementById('stageTitle').innerHTML = `${data.name}<span>.</span>`;
-    document.getElementById('stageMeta').textContent =
-      `${count} slide${count > 1 ? 's' : ''} · ${state.aspect} · ${state.mode === 'text' ? 'solo texto' : 'imagen + texto'}`;
 
-    if (state.mode === 'text') {
-      renderTextSlides();
-    } else {
-      renderImageSlides();
-    }
   } catch (err) {
     output.innerHTML = `
       <div class="error">
@@ -1253,6 +1354,60 @@ async function generate() {
       </div>`;
   } finally {
     document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+// Construye el panel lateral con los toggles de secciones
+function buildSectionsPanel(data, humanized) {
+  const panel = document.getElementById('sectionsPanel');
+  const container = document.getElementById('sectionChecks');
+
+  // Definir secciones disponibles con íconos y etiquetas
+  const SECTIONS = [
+    { key: 'portada',      label: 'Portada',           tag: 'siempre',  locked: true  },
+    { key: 'historia',     label: 'Historia',           tag: humanized?.historia     ? 'con IA' : 'básica' },
+    { key: 'estilo',       label: 'Estilo musical',     tag: humanized?.estilo       ? 'con IA' : 'básico' },
+    { key: 'integrantes',  label: 'Integrantes',        tag: data.members.length > 0 ? `${data.members.length} encontrados` : 'sin datos' },
+    { key: 'discografia',  label: 'Discografía',        tag: data.albums.length > 0  ? `${data.albums.length} álbumes`      : 'sin datos' },
+    { key: 'ultimo',       label: 'Último lanzamiento', tag: data.albums.length > 0  ? data.albums[data.albums.length-1].year : 'sin datos' },
+  ];
+
+  container.innerHTML = SECTIONS.map(s => `
+    <label class="section-check-item ${state.activeSections[s.key] ? 'checked' : ''} ${s.locked ? 'disabled' : ''}"
+           data-key="${s.key}">
+      <input type="checkbox" ${state.activeSections[s.key] ? 'checked' : ''} ${s.locked ? 'disabled' : ''}>
+      <div class="check-box"></div>
+      <span class="check-label">${s.label}</span>
+      <span class="check-tag">${s.tag}</span>
+    </label>
+  `).join('');
+
+  // Bindings — tildear/destildear reconstruye al instante
+  container.querySelectorAll('.section-check-item:not(.disabled)').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.key;
+      state.activeSections[key] = !state.activeSections[key];
+      item.classList.toggle('checked', state.activeSections[key]);
+      rebuildCarousel();
+    });
+  });
+
+  panel.classList.add('visible');
+}
+
+// Recompone los slides y re-renderiza sin llamar a la API
+function rebuildCarousel() {
+  if (!state.bandData) return;
+  const count = parseInt(document.getElementById('slideCount').value) || 6;
+  state.slides = composeSlides(state.bandData, count, state.humanizedCache);
+
+  const meta = `${state.slides.length} slide${state.slides.length !== 1 ? 's' : ''} · ${state.aspect} · ${state.mode === 'text' ? 'solo texto' : 'imagen + texto'}`;
+  document.getElementById('stageMeta').textContent = meta;
+
+  if (state.mode === 'text') {
+    renderTextSlides();
+  } else {
+    renderImageSlides();
   }
 }
 
