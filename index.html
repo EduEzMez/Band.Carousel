@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Band Carousel · Generador de carruseles musicales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0d0b;
+  --bg-2: #1a1815;
+  --paper: #f4ede0;
+  --ink: #1a1815;
+  --accent: #ff5b1f;
+  --accent-2: #ffb84d;
+  --muted: #8c8478;
+  --border: #2a2620;
+  --border-light: #d8cfbe;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--paper); font-family: 'Inter', sans-serif; min-height: 100vh; }
+body {
+  background:
+    radial-gradient(ellipse at top right, rgba(255, 91, 31, 0.08), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(255, 184, 77, 0.05), transparent 50%),
+    var(--bg);
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 22px 40px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+header .logo {
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+header .logo span { color: var(--accent); font-style: italic; }
+header .tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+
+main {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 0;
+  min-height: calc(100vh - 75px);
+}
+
+/* ===== Panel de control ===== */
+aside {
+  border-right: 1px solid var(--border);
+  padding: 28px;
+  overflow-y: auto;
+  max-height: calc(100vh - 75px);
+  background: rgba(255,255,255,0.01);
+}
+aside h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent-2);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+aside h2::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+aside section { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px dashed var(--border); }
+aside section:last-of-type { border-bottom: none; }
+
+label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+label:first-child { margin-top: 0; }
+
+input[type="text"], select, textarea {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--paper);
+  padding: 11px 13px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: border 0.2s;
+}
+input[type="text"]:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="number"] {
+  width: 70px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--paper);
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  border-radius: 4px;
+}
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="color"] {
+  width: 100%; height: 38px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  cursor: pointer; border-radius: 4px;
+}
+input[type="file"] {
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+input[type="file"]::file-selector-button {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--accent-2);
+  padding: 8px 14px;
+  margin-right: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row > * { flex: 1; }
+.row label { margin: 0; }
+
+.btn {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  color: var(--ink);
+  border: none;
+  padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border-radius: 4px;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 91, 31, 0.3);
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.secondary {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--border);
+}
+.btn.secondary:hover { border-color: var(--accent-2); color: var(--accent-2); }
+.btn-group { display: flex; gap: 8px; margin-top: 12px; }
+.btn-group .btn { padding: 11px; font-size: 11px; }
+
+.segmented {
+  display: flex;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px;
+  margin-top: 4px;
+}
+.segmented button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.segmented button.active {
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.help-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ===== Stage (zona de previsualización) ===== */
+.stage {
+  padding: 32px 40px;
+  overflow-y: auto;
+  max-height: calc(100vh - 75px);
+}
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.stage-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+.stage-title span { color: var(--accent); font-style: italic; }
+.stage-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 42px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--paper);
+  margin-bottom: 14px;
+  max-width: 600px;
+  line-height: 1.15;
+}
+.empty-state p {
+  max-width: 480px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.empty-state .dot {
+  color: var(--accent);
+  font-size: 60px;
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error {
+  background: rgba(255, 91, 31, 0.08);
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  color: var(--paper);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.error strong { color: var(--accent); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; display: block; margin-bottom: 4px; }
+
+/* ===== Modo: solo texto ===== */
+.text-output {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.text-slide {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 24px;
+  position: relative;
+}
+.text-slide .slide-num {
+  position: absolute;
+  top: 16px; right: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.text-slide h4 {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: var(--accent-2);
+}
+.text-slide p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--paper);
+  white-space: pre-wrap;
+}
+.text-slide .copy-btn {
+  margin-top: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.text-slide .copy-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
+
+/* ===== Modo: imágenes ===== */
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.image-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.image-card .label-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.image-card .label-row span:first-child { color: var(--accent); }
+.image-card canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #000;
+  display: block;
+}
+.image-card .download {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--paper);
+  padding: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.image-card .download:hover { background: var(--accent); color: var(--ink); }
+
+.download-all {
+  margin-bottom: 20px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  aside { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+  .stage { max-height: none; padding: 24px; }
+  header { padding: 16px 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Band<span>·</span>Carousel</div>
+  <div class="tag">v1.0 / generador editorial</div>
+</header>
+
+<main>
+  <!-- ========== PANEL DE CONTROL ========== -->
+  <aside>
+    <section>
+      <h2>Banda</h2>
+      <label for="bandName">Nombre</label>
+      <input type="text" id="bandName" placeholder="Ej: Soda Stereo" autocomplete="off">
+      <div class="help-text">Datos desde MusicBrainz + Wikipedia</div>
+    </section>
+
+    <section>
+      <h2>Formato</h2>
+
+      <label>Cantidad de imágenes / slides</label>
+      <input type="number" id="slideCount" min="1" max="10" value="4">
+
+      <label>Modo de salida</label>
+      <div class="segmented" id="modeSegmented">
+        <button data-mode="text" class="active">Solo texto</button>
+        <button data-mode="image">Imagen + texto</button>
+      </div>
+
+      <label>Proporción</label>
+      <div class="segmented" id="aspectSegmented">
+        <button data-aspect="1:1" class="active">1:1</button>
+        <button data-aspect="4:5">4:5</button>
+        <button data-aspect="9:16">9:16</button>
+      </div>
+    </section>
+
+    <!-- Sección visible solo si modo = image -->
+    <section id="imageSection" style="display:none;">
+      <h2>Imagen de fondo</h2>
+      <label>Subir imagen</label>
+      <input type="file" id="bgUpload" accept="image/*">
+
+      <label>Estilo de fondo</label>
+      <div class="segmented" id="bgStyleSegmented">
+        <button data-bg="overlay" class="active">Overlay</button>
+        <button data-bg="blur">Blur</button>
+        <button data-bg="solid">Sólido</button>
+      </div>
+
+      <label>Intensidad overlay / blur</label>
+      <input type="range" id="bgIntensity" min="0" max="100" value="55">
+
+      <label>Color sólido (si aplica)</label>
+      <input type="color" id="bgSolidColor" value="#0e0d0b">
+    </section>
+
+    <section id="textStyleSection" style="display:none;">
+      <h2>Tipografía</h2>
+
+      <label>Familia</label>
+      <select id="fontFamily">
+        <option value="'Fraunces', serif">Fraunces (Editorial)</option>
+        <option value="'Inter', sans-serif">Inter (Limpio)</option>
+        <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+        <option value="'Courier New', monospace">Courier</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="Impact, sans-serif">Impact</option>
+      </select>
+
+      <label>Tamaño de cuerpo: <span id="fontSizeVal">42</span>px</label>
+      <input type="range" id="fontSize" min="20" max="80" value="42">
+
+      <label>Tamaño de título: <span id="titleSizeVal">96</span>px</label>
+      <input type="range" id="titleSize" min="40" max="180" value="96">
+
+      <label>Color de texto</label>
+      <input type="color" id="textColor" value="#f4ede0">
+
+      <label>Color de acento (títulos)</label>
+      <input type="color" id="accentColor" value="#ff5b1f">
+
+      <label>Alineación</label>
+      <div class="segmented" id="alignSegmented">
+        <button data-align="left">Izquierda</button>
+        <button data-align="center" class="active">Centro</button>
+        <button data-align="right">Derecha</button>
+      </div>
+
+      <label>Posición vertical</label>
+      <div class="segmented" id="vAlignSegmented">
+        <button data-valign="top">Arriba</button>
+        <button data-valign="middle" class="active">Centro</button>
+        <button data-valign="bottom">Abajo</button>
+      </div>
+
+      <label>Sangría / Padding: <span id="paddingVal">80</span>px</label>
+      <input type="range" id="padding" min="20" max="200" value="80">
+
+      <label>Interlineado: <span id="lineHeightVal">1.4</span></label>
+      <input type="range" id="lineHeight" min="100" max="200" value="140">
+    </section>
+
+    <section>
+      <button id="generateBtn" class="btn">Generar</button>
+      <div class="btn-group">
+        <button id="resetBtn" class="btn secondary">Reset</button>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ========== STAGE ========== -->
+  <div class="stage">
+    <div class="stage-header">
+      <div class="stage-title" id="stageTitle">Pendiente<span>.</span></div>
+      <div class="stage-meta" id="stageMeta">Esperando banda…</div>
+    </div>
+    <div id="output">
+      <div class="empty-state">
+        <div class="dot">●</div>
+        <h3>Carruseles musicales con <em>datos verídicos</em>.</h3>
+        <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información (origen, estilo, discografía, último lanzamiento) en formato listo para Instagram.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ============================================================================
+//  ESTADO
+// ============================================================================
+const state = {
+  mode: 'text',            // 'text' | 'image'
+  aspect: '1:1',           // '1:1' | '4:5' | '9:16'
+  bgStyle: 'overlay',      // 'overlay' | 'blur' | 'solid'
+  align: 'center',
+  valign: 'middle',
+  bgImage: null,           // HTMLImageElement
+  bandData: null,
+  slides: [],
+};
+
+// ============================================================================
+//  CONTROLES UI
+// ============================================================================
+function bindSegmented(containerId, key, callback) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state[key] = btn.dataset[Object.keys(btn.dataset)[0]];
+      if (callback) callback();
+    });
+  });
+}
+
+bindSegmented('modeSegmented', 'mode', () => {
+  document.getElementById('imageSection').style.display = state.mode === 'image' ? '' : 'none';
+  document.getElementById('textStyleSection').style.display = state.mode === 'image' ? '' : 'none';
+});
+bindSegmented('aspectSegmented', 'aspect');
+bindSegmented('bgStyleSegmented', 'bgStyle');
+bindSegmented('alignSegmented', 'align');
+bindSegmented('vAlignSegmented', 'valign');
+
+// Sliders con readouts
+['fontSize', 'titleSize', 'padding'].forEach(id => {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id + 'Val');
+  el.addEventListener('input', () => val.textContent = el.value);
+});
+const lhEl = document.getElementById('lineHeight');
+const lhVal = document.getElementById('lineHeightVal');
+lhEl.addEventListener('input', () => lhVal.textContent = (lhEl.value / 100).toFixed(2));
+
+// Upload de imagen
+document.getElementById('bgUpload').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => { state.bgImage = img; };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('bandName').value = '';
+  state.bandData = null;
+  state.slides = [];
+  document.getElementById('output').innerHTML = `
+    <div class="empty-state">
+      <div class="dot">●</div>
+      <h3>Carruseles musicales con <em>datos verídicos</em>.</h3>
+      <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información en formato listo para Instagram.</p>
+    </div>`;
+  document.getElementById('stageTitle').innerHTML = 'Pendiente<span>.</span>';
+  document.getElementById('stageMeta').textContent = 'Esperando banda…';
+});
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+document.getElementById('bandName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') generate();
+});
+
+// ============================================================================
+//  DATA FETCHING — MusicBrainz + Wikipedia
+// ============================================================================
+const MB_BASE = 'https://musicbrainz.org/ws/2';
+const WP_BASE = 'https://es.wikipedia.org/api/rest_v1/page/summary';
+const WP_BASE_EN = 'https://en.wikipedia.org/api/rest_v1/page/summary';
+
+// NOTA: el browser no permite setear User-Agent manualmente vía fetch,
+// pero MusicBrainz acepta ?fmt=json y user-agents anónimos a 1 req/s.
+// Espaciamos las requests con delays para no caer en el rate limit.
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function fetchMB(path) {
+  const url = `${MB_BASE}/${path}${path.includes('?') ? '&' : '?'}fmt=json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`MusicBrainz: ${res.status}`);
+  return res.json();
+}
+
+async function fetchWikipedia(title) {
+  // Intenta ES primero, cae a EN
+  for (const base of [WP_BASE, WP_BASE_EN]) {
+    try {
+      const res = await fetch(`${base}/${encodeURIComponent(title)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.extract && data.extract.length > 50) return data;
+      }
+    } catch (e) { /* sigue */ }
+  }
+  return null;
+}
+
+async function searchBand(name) {
+  // 1. Buscar artista
+  const search = await fetchMB(`artist?query=artist:${encodeURIComponent(name)}&limit=5`);
+  if (!search.artists || search.artists.length === 0) {
+    throw new Error('No se encontró ninguna banda con ese nombre en MusicBrainz.');
+  }
+
+  // Preferir tipo "Group" sobre "Person"
+  const artist = search.artists.find(a => a.type === 'Group') || search.artists[0];
+
+  await sleep(1100);
+
+  // 2. Detalles del artista (tags, country, area, life-span)
+  const detail = await fetchMB(`artist/${artist.id}?inc=tags+genres`);
+
+  await sleep(1100);
+
+  // 3. Discografía (release-groups tipo Album, ordenados por fecha)
+  const rg = await fetchMB(`release-group?artist=${artist.id}&type=album&limit=100`);
+
+  // Filtrar y ordenar release-groups oficiales (no compilaciones / live)
+  const albums = (rg['release-groups'] || [])
+    .filter(r => r['first-release-date'] && r['primary-type'] === 'Album')
+    .filter(r => {
+      const sec = r['secondary-types'] || [];
+      return !sec.includes('Compilation') && !sec.includes('Live') && !sec.includes('Soundtrack');
+    })
+    .sort((a, b) => (a['first-release-date'] || '').localeCompare(b['first-release-date'] || ''));
+
+  // 4. Wikipedia (resumen narrativo)
+  const wiki = await fetchWikipedia(detail.name);
+
+  return {
+    name: detail.name,
+    country: detail.country || (detail.area && detail.area.name) || null,
+    area: detail.area ? detail.area.name : null,
+    beginArea: detail['begin-area'] ? detail['begin-area'].name : null,
+    lifeSpan: detail['life-span'] || {},
+    type: detail.type,
+    tags: (detail.tags || []).sort((a, b) => b.count - a.count).slice(0, 6).map(t => t.name),
+    genres: (detail.genres || []).sort((a, b) => b.count - a.count).slice(0, 4).map(g => g.name),
+    albums: albums.map(a => ({
+      title: a.title,
+      date: a['first-release-date'],
+      year: (a['first-release-date'] || '').slice(0, 4),
+    })),
+    wiki: wiki ? wiki.extract : null,
+  };
+}
+
+// ============================================================================
+//  COMPOSICIÓN DE SLIDES
+// ============================================================================
+function composeSlides(data, count) {
+  const slides = [];
+
+  // Bloques de contenido posibles
+  const bandName = data.name.toUpperCase();
+  const origin = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
+  const start = (data.lifeSpan.begin || '').slice(0, 4);
+  const end = (data.lifeSpan.ended && data.lifeSpan.end) ? data.lifeSpan.end.slice(0, 4) : null;
+  const yearLine = start
+    ? (end ? `Activos: ${start} — ${end}` : `Desde ${start} · en actividad`)
+    : 'Fechas no especificadas';
+
+  const styles = data.genres.length ? data.genres : data.tags;
+  const styleList = styles.length ? styles.slice(0, 5).map(s => s.replace(/\b\w/g, c => c.toUpperCase())).join(' · ') : 'Estilo no clasificado';
+  const styleDesc = buildStyleDescription(styles, data.wiki);
+
+  const albumLines = data.albums.length
+    ? data.albums.map(a => `${a.year} · ${a.title}`)
+    : ['Sin álbumes registrados en MusicBrainz'];
+
+  const latest = data.albums.length ? data.albums[data.albums.length - 1] : null;
+  const latestLine = latest
+    ? `${latest.title}\nLanzado en ${latest.year}`
+    : 'No hay lanzamientos recientes registrados';
+
+  const trajectory = buildTrajectory(data);
+
+  // Distribución según cantidad de slides
+  if (count === 1) {
+    slides.push({
+      title: bandName,
+      body:
+`${origin}
+${yearLine}
+
+ESTILO
+${styleList}
+
+DISCOGRAFÍA
+${albumLines.slice(0, 8).join('\n')}${data.albums.length > 8 ? `\n+ ${data.albums.length - 8} álbumes más` : ''}
+
+ÚLTIMO LANZAMIENTO
+${latestLine}`
+    });
+  } else if (count === 2) {
+    slides.push({
+      title: bandName,
+      body: `${origin}\n${yearLine}\n\nESTILO\n${styleList}\n\n${styleDesc}`
+    });
+    slides.push({
+      title: 'DISCOGRAFÍA',
+      body: `${albumLines.join('\n')}\n\nÚLTIMO LANZAMIENTO\n${latestLine}`
+    });
+  } else if (count === 3) {
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${trajectory}` });
+    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${albumLines.join('\n')}\n\n— — —\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+  } else if (count === 4) {
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
+    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + '\n\n' + trajectory });
+    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
+  } else {
+    // 5+: distribución modular
+    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
+    slides.push({ title: 'ORIGEN', body: trajectory });
+    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
+
+    // Discografía dividida en varias slides si hay muchos álbumes
+    const discoSlots = count - 4; // slides restantes para disco + última
+    const albumsPerSlide = Math.ceil(albumLines.length / discoSlots);
+    for (let i = 0; i < discoSlots; i++) {
+      const chunk = albumLines.slice(i * albumsPerSlide, (i + 1) * albumsPerSlide);
+      if (chunk.length === 0) {
+        slides.push({ title: 'DISCOGRAFÍA', body: 'Sin más álbumes' });
+      } else {
+        slides.push({
+          title: discoSlots > 1 ? `DISCOGRAFÍA · ${i + 1}/${discoSlots}` : 'DISCOGRAFÍA',
+          body: chunk.join('\n')
+        });
+      }
+    }
+    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
+  }
+
+  return slides;
+}
+
+function buildStyleDescription(genres, wiki) {
+  // Pequeño glosario para enriquecer la explicación
+  const dict = {
+    'rock': 'Rock: música con guitarras eléctricas, ritmo marcado y estructura de canción.',
+    'pop': 'Pop: melodías accesibles y producción orientada al consumo masivo.',
+    'punk': 'Punk: actitud cruda, tempos rápidos y temáticas contestatarias.',
+    'metal': 'Metal: distorsión pesada, virtuosismo instrumental y atmósfera oscura.',
+    'indie': 'Indie: producción independiente con identidad estética propia.',
+    'electronic': 'Electrónica: producción basada en sintetizadores y secuenciación.',
+    'hip hop': 'Hip Hop: rapeo sobre bases rítmicas, narrativa y cultura urbana.',
+    'jazz': 'Jazz: improvisación, swing y armonía compleja.',
+    'folk': 'Folk: raíz acústica con tradición narrativa y melódica.',
+    'reggae': 'Reggae: ritmo en contratiempo nacido en Jamaica.',
+    'blues': 'Blues: doce compases, escala pentatónica y expresión emocional.',
+    'soul': 'Soul: gospel + R&B, voz protagónica y groove.',
+    'r&b': 'R&B: ritmos negros con énfasis en la melodía vocal.',
+    'alternative': 'Alternativo: rock fuera del mainstream con búsqueda sonora.',
+    'progressive': 'Progresivo: estructuras largas, cambios de compás y ambición conceptual.',
+    'experimental': 'Experimental: ruptura con la forma tradicional.',
+    'psychedelic': 'Psicodélico: texturas envolventes y referencias contraculturales.',
+    'grunge': 'Grunge: rock sucio nacido en Seattle a fines de los 80.',
+    'shoegaze': 'Shoegaze: paredes de guitarra con efectos y voces sumergidas.',
+    'new wave': 'New Wave: post-punk con sintetizadores y estética moderna.',
+    'post-punk': 'Post-Punk: angular, frío y experimental tras la primera ola punk.',
+    'ska': 'Ska: precursor del reggae, sección de vientos y ritmo rebote.',
+    'trap': 'Trap: subgénero del hip hop con hi-hats rápidos y 808s.',
+    'reggaeton': 'Reggaetón: dembow rítmico caribeño con influencias latinas.',
+    'cumbia': 'Cumbia: ritmo bailable de raíz colombiana, popular en Latinoamérica.',
+    'tango': 'Tango: música rioplatense, melancólica y sofisticada.',
+    'rock nacional': 'Rock Nacional: tradición rockera argentina con identidad propia.',
+  };
+
+  const descriptions = [];
+  for (const g of genres.slice(0, 3)) {
+    const key = g.toLowerCase();
+    for (const dictKey in dict) {
+      if (key.includes(dictKey)) {
+        descriptions.push(dict[dictKey]);
+        break;
+      }
+    }
+  }
+
+  if (descriptions.length === 0 && wiki) {
+    // Extraer primera frase con menciones estilísticas del resumen wiki
+    const firstSentence = wiki.split('.')[0];
+    if (firstSentence.length < 280) descriptions.push(firstSentence + '.');
+  }
+
+  return [...new Set(descriptions)].join(' ');
+}
+
+function buildTrajectory(data) {
+  if (data.wiki) {
+    // Tomar las primeras 2-3 oraciones del resumen wiki
+    const sentences = data.wiki.split('. ').slice(0, 3).join('. ');
+    return sentences.endsWith('.') ? sentences : sentences + '.';
+  }
+  const albumCount = data.albums.length;
+  if (albumCount === 0) return 'Trayectoria no documentada en las fuentes consultadas.';
+  return `Editaron ${albumCount} álbum${albumCount > 1 ? 'es' : ''} de estudio entre ${data.albums[0].year} y ${data.albums[albumCount - 1].year}.`;
+}
+
+// ============================================================================
+//  FLUJO PRINCIPAL
+// ============================================================================
+async function generate() {
+  const name = document.getElementById('bandName').value.trim();
+  if (!name) { alert('Ingresá el nombre de una banda'); return; }
+
+  const count = parseInt(document.getElementById('slideCount').value);
+  if (count < 1 || count > 10) { alert('La cantidad debe estar entre 1 y 10'); return; }
+
+  const output = document.getElementById('output');
+  output.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>Consultando MusicBrainz</div>
+      <div style="font-size:10px; color:var(--muted);">~3-5 segundos · rate limit 1 req/s</div>
+    </div>`;
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('stageMeta').textContent = `Buscando "${name}"…`;
+
+  try {
+    const data = await searchBand(name);
+    state.bandData = data;
+    state.slides = composeSlides(data, count);
+
+    document.getElementById('stageTitle').innerHTML = `${data.name}<span>.</span>`;
+    document.getElementById('stageMeta').textContent =
+      `${count} slide${count > 1 ? 's' : ''} · ${state.aspect} · ${state.mode === 'text' ? 'solo texto' : 'imagen + texto'}`;
+
+    if (state.mode === 'text') {
+      renderTextSlides();
+    } else {
+      renderImageSlides();
+    }
+  } catch (err) {
+    output.innerHTML = `
+      <div class="error">
+        <strong>Error</strong>
+        ${err.message}<br>
+        Probá con otro nombre o verificá la escritura. MusicBrainz suele tener bandas indexadas en idioma original.
+      </div>`;
+  } finally {
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+// ============================================================================
+//  RENDER: SOLO TEXTO
+// ============================================================================
+function renderTextSlides() {
+  const output = document.getElementById('output');
+  let html = '';
+  state.slides.forEach((slide, i) => {
+    html += `
+      <div class="text-slide">
+        <div class="slide-num">SLIDE ${i + 1}/${state.slides.length}</div>
+        <h4>${escapeHTML(slide.title)}</h4>
+        <p>${escapeHTML(slide.body)}</p>
+        <button class="copy-btn" data-i="${i}">Copiar</button>
+      </div>`;
+  });
+  // Botón para copiar TODO
+  html = `
+    <div class="download-all">
+      <button class="btn secondary" id="copyAllBtn">Copiar todas las slides</button>
+    </div>
+    <div class="text-output">${html}</div>`;
+  output.innerHTML = html;
+
+  output.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      const s = state.slides[i];
+      navigator.clipboard.writeText(`${s.title}\n\n${s.body}`);
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = 'Copiar', 1500);
+    });
+  });
+  document.getElementById('copyAllBtn').addEventListener('click', () => {
+    const all = state.slides.map((s, i) => `===== SLIDE ${i + 1} =====\n${s.title}\n\n${s.body}`).join('\n\n');
+    navigator.clipboard.writeText(all);
+    document.getElementById('copyAllBtn').textContent = '✓ Todo copiado';
+    setTimeout(() => document.getElementById('copyAllBtn').textContent = 'Copiar todas las slides', 1500);
+  });
+}
+
+// ============================================================================
+//  RENDER: IMAGEN + TEXTO (canvas)
+// ============================================================================
+function getAspectDims() {
+  switch(state.aspect) {
+    case '1:1': return { w: 1080, h: 1080 };
+    case '4:5': return { w: 1080, h: 1350 };
+    case '9:16': return { w: 1080, h: 1920 };
+    default: return { w: 1080, h: 1080 };
+  }
+}
+
+function renderImageSlides() {
+  const output = document.getElementById('output');
+  let html = `
+    <div class="download-all">
+      <button class="btn secondary" id="downloadAllBtn">Descargar todas como ZIP individual</button>
+    </div>
+    <div class="images-grid">`;
+
+  state.slides.forEach((slide, i) => {
+    html += `
+      <div class="image-card">
+        <div class="label-row">
+          <span>Slide ${i + 1}/${state.slides.length}</span>
+          <span>${getAspectDims().w}×${getAspectDims().h}</span>
+        </div>
+        <canvas id="canvas-${i}"></canvas>
+        <button class="download" data-i="${i}">Descargar PNG</button>
+      </div>`;
+  });
+  html += '</div>';
+  output.innerHTML = html;
+
+  // Dibujar cada canvas
+  state.slides.forEach((slide, i) => {
+    drawSlide(document.getElementById(`canvas-${i}`), slide, i);
+  });
+
+  // Bindings
+  output.querySelectorAll('.download').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      const canvas = document.getElementById(`canvas-${i}`);
+      const link = document.createElement('a');
+      link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${i + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+
+  document.getElementById('downloadAllBtn').addEventListener('click', () => {
+    state.slides.forEach((s, i) => {
+      setTimeout(() => {
+        const canvas = document.getElementById(`canvas-${i}`);
+        const link = document.createElement('a');
+        link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${i + 1}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }, i * 300);
+    });
+  });
+}
+
+function drawSlide(canvas, slide, index) {
+  const { w, h } = getAspectDims();
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  // === FONDO ===
+  drawBackground(ctx, w, h);
+
+  // === TEXTO ===
+  const padding = parseInt(document.getElementById('padding').value);
+  const fontFamily = document.getElementById('fontFamily').value;
+  const fontSize = parseInt(document.getElementById('fontSize').value);
+  const titleSize = parseInt(document.getElementById('titleSize').value);
+  const textColor = document.getElementById('textColor').value;
+  const accentColor = document.getElementById('accentColor').value;
+  const lineHeight = parseFloat(document.getElementById('lineHeight').value) / 100;
+
+  const maxWidth = w - padding * 2;
+
+  // Layout: título arriba, body abajo
+  ctx.textAlign = state.align;
+  const xAnchor = state.align === 'left' ? padding : state.align === 'right' ? w - padding : w / 2;
+
+  // Title
+  ctx.fillStyle = accentColor;
+  ctx.font = `800 ${titleSize}px ${fontFamily}`;
+  const titleLines = wrapText(ctx, slide.title, maxWidth);
+  const titleBlockHeight = titleLines.length * titleSize * lineHeight;
+
+  // Body
+  ctx.font = `400 ${fontSize}px ${fontFamily}`;
+  const bodyParagraphs = slide.body.split('\n');
+  const bodyLines = [];
+  bodyParagraphs.forEach(p => {
+    if (p.trim() === '') {
+      bodyLines.push('');
+    } else {
+      wrapText(ctx, p, maxWidth).forEach(l => bodyLines.push(l));
+    }
+  });
+  const bodyBlockHeight = bodyLines.length * fontSize * lineHeight;
+
+  const gap = fontSize * 0.8;
+  const totalHeight = titleBlockHeight + gap + bodyBlockHeight;
+
+  // Vertical anchor
+  let startY;
+  if (state.valign === 'top') startY = padding;
+  else if (state.valign === 'bottom') startY = h - padding - totalHeight;
+  else startY = (h - totalHeight) / 2;
+
+  // Dibujar título
+  ctx.fillStyle = accentColor;
+  ctx.font = `800 ${titleSize}px ${fontFamily}`;
+  let y = startY + titleSize;
+  titleLines.forEach(line => {
+    ctx.fillText(line, xAnchor, y);
+    y += titleSize * lineHeight;
+  });
+
+  // Pequeña línea decorativa entre título y body
+  if (slide.title && slide.body) {
+    const lineY = startY + titleBlockHeight + gap / 2;
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const lw = 60;
+    let lx1, lx2;
+    if (state.align === 'left') { lx1 = padding; lx2 = padding + lw; }
+    else if (state.align === 'right') { lx1 = w - padding - lw; lx2 = w - padding; }
+    else { lx1 = w / 2 - lw / 2; lx2 = w / 2 + lw / 2; }
+    ctx.moveTo(lx1, lineY); ctx.lineTo(lx2, lineY);
+    ctx.stroke();
+  }
+
+  // Body
+  ctx.fillStyle = textColor;
+  ctx.font = `400 ${fontSize}px ${fontFamily}`;
+  y = startY + titleBlockHeight + gap + fontSize;
+  bodyLines.forEach(line => {
+    if (line !== '') ctx.fillText(line, xAnchor, y);
+    y += fontSize * lineHeight;
+  });
+
+  // Footer: número de slide
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.4;
+  ctx.font = `500 ${Math.max(18, w * 0.018)}px 'JetBrains Mono', monospace`;
+  ctx.textAlign = 'left';
+  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(state.slides.length).padStart(2, '0')}`, padding / 2 + 20, h - padding / 2);
+  ctx.textAlign = 'right';
+  ctx.fillText('BAND·CAROUSEL', w - padding / 2 - 20, h - padding / 2);
+  ctx.globalAlpha = 1;
+}
+
+function drawBackground(ctx, w, h) {
+  // Fallback sólido
+  const bgColor = document.getElementById('bgSolidColor').value;
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, w, h);
+
+  if (!state.bgImage) return;
+
+  const intensity = parseInt(document.getElementById('bgIntensity').value) / 100;
+
+  // Dibuja imagen con cover
+  const img = state.bgImage;
+  const scale = Math.max(w / img.width, h / img.height);
+  const drawW = img.width * scale;
+  const drawH = img.height * scale;
+  const dx = (w - drawW) / 2;
+  const dy = (h - drawH) / 2;
+
+  if (state.bgStyle === 'solid') {
+    // Solo color sólido, no se dibuja imagen
+    return;
+  }
+
+  if (state.bgStyle === 'blur') {
+    ctx.filter = `blur(${Math.round(intensity * 30)}px)`;
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+    ctx.filter = 'none';
+    // Capa de oscurecimiento sutil
+    ctx.fillStyle = `rgba(0,0,0,${intensity * 0.35})`;
+    ctx.fillRect(0, 0, w, h);
+  } else {
+    // overlay
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+    ctx.fillStyle = `rgba(0,0,0,${intensity})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+
+</body>
+</html>
