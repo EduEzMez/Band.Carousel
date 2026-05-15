@@ -673,7 +673,7 @@ footer .footer-vibes em {
     <!-- Sección visible solo si modo = image -->
     <section id="imageSection" style="display:none;">
       <h2>Imagen de fondo</h2>
-      <label>Subir imagen</label>
+      <label>Subir imagen de fondo</label>
       <input type="file" id="bgUpload" accept="image/*">
 
       <label>Estilo de fondo</label>
@@ -688,6 +688,13 @@ footer .footer-vibes em {
 
       <label>Color sólido (si aplica)</label>
       <input type="color" id="bgSolidColor" value="#0e0d0b">
+
+      <label>Imagen de la banda (Wikipedia)</label>
+      <div class="segmented" id="bandImgSegmented">
+        <button data-bandimg="auto" class="active">Auto (Wikipedia)</button>
+        <button data-bandimg="off">Sin imagen</button>
+      </div>
+      <div class="help-text">Se busca automáticamente. Aparece en slide 1 y portada.</div>
     </section>
 
     <section id="textStyleSection" style="display:none;">
@@ -779,7 +786,9 @@ const state = {
   bgStyle: 'overlay',      // 'overlay' | 'blur' | 'solid'
   align: 'center',
   valign: 'middle',
-  bgImage: null,           // HTMLImageElement
+  bgImage: null,           // HTMLImageElement (fondo custom)
+  bandImg: null,           // HTMLImageElement (foto de la banda, Wikipedia)
+  bandImgMode: 'auto',     // 'auto' | 'off'
   bandData: null,
   slides: [],
 };
@@ -807,6 +816,7 @@ bindSegmented('aspectSegmented', 'aspect');
 bindSegmented('bgStyleSegmented', 'bgStyle');
 bindSegmented('alignSegmented', 'align');
 bindSegmented('vAlignSegmented', 'valign');
+bindSegmented('bandImgSegmented', 'bandImgMode');
 
 // Sliders con readouts
 ['fontSize', 'titleSize', 'padding'].forEach(id => {
@@ -884,6 +894,38 @@ async function fetchWikipedia(title) {
   return null;
 }
 
+async function fetchWikipediaImage(title) {
+  // Busca la imagen principal del artículo de Wikipedia en EN
+  // Usa la API de thumbnails de Wikipedia
+  for (const lang of ['en', 'es']) {
+    try {
+      const url = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const pages = data.query && data.query.pages;
+      if (!pages) continue;
+      const page = Object.values(pages)[0];
+      if (page && page.thumbnail && page.thumbnail.source) {
+        return await loadImageFromUrl(page.thumbnail.source);
+      }
+    } catch (e) { /* sigue */ }
+  }
+  return null;
+}
+
+function loadImageFromUrl(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    // Proxy a través de wikipedia para evitar CORS en algunos casos
+    img.src = url;
+    setTimeout(() => resolve(null), 5000); // timeout 5s
+  });
+}
+
 async function searchBand(name) {
   // 1. Buscar artista
   const search = await fetchMB(`artist?query=artist:${encodeURIComponent(name)}&limit=5`);
@@ -937,8 +979,14 @@ async function searchBand(name) {
     })
     .sort((a, b) => (a['first-release-date'] || '').localeCompare(b['first-release-date'] || ''));
 
-  // 4. Wikipedia (resumen narrativo)
+  // 4. Wikipedia (resumen narrativo + imagen)
   const wiki = await fetchWikipedia(detail.name);
+
+  // 5. Imagen de Wikipedia (no bloquea si falla)
+  let wikiImage = null;
+  try {
+    wikiImage = await fetchWikipediaImage(detail.name);
+  } catch(e) { /* sin imagen */ }
 
   return {
     name: detail.name,
@@ -956,6 +1004,7 @@ async function searchBand(name) {
     })),
     members: members,
     wiki: wiki ? wiki.extract : null,
+    wikiImage: wikiImage,
   };
 }
 
@@ -1191,6 +1240,7 @@ async function generate() {
   try {
     const data = await searchBand(name);
     state.bandData = data;
+    state.bandImg = data.wikiImage || null;
     state.slides = composeSlides(data, count);
 
     document.getElementById('stageTitle').innerHTML = `${data.name}<span>.</span>`;
@@ -1422,7 +1472,7 @@ function redrawAllCanvases() {
 }
 
 // ============================================================================
-//  RENDER CANVAS
+//  RENDER CANVAS — Layout editorial estilo carrusel Instagram
 // ============================================================================
 function drawSlide(canvas, slide, index, totalOverride) {
   const { w, h } = getAspectDims();
@@ -1430,95 +1480,414 @@ function drawSlide(canvas, slide, index, totalOverride) {
   canvas.height = h;
   const ctx = canvas.getContext('2d');
 
-  // === FONDO ===
+  // Opciones de estilo
+  const padding    = parseInt(document.getElementById('padding').value);
+  const fontFamily = document.getElementById('fontFamily').value;
+  const fontSize   = parseInt(document.getElementById('fontSize').value);
+  const titleSize  = parseInt(document.getElementById('titleSize').value);
+  const textColor  = document.getElementById('textColor').value;
+  const accentColor= document.getElementById('accentColor').value;
+  const lhRatio    = parseFloat(document.getElementById('lineHeight').value) / 100;
+  const total      = totalOverride || state.slides.length;
+  const showBandImg = state.bandImgMode !== 'off';
+
+  // Detectar tipo de slide por título para asignar layout
+  const titleUp = slide.title.toUpperCase();
+  const isPortada   = index === 0;
+  const isIntegr    = titleUp.includes('INTEGRANTE') || titleUp.includes('MIEMBRO');
+  const isUltimo    = titleUp.includes('ÚLTIMO') || titleUp.includes('ULTIMO') || titleUp.includes('LANZAMIENTO');
+  const isHistoria  = titleUp.includes('HISTORIA') || titleUp.includes('ORIGEN');
+  const isDiscog    = titleUp.includes('DISCOGRAF');
+
+  // === 1. FONDO BASE ===
   drawBackground(ctx, w, h);
 
-  // === TEXTO ===
-  const padding = parseInt(document.getElementById('padding').value);
-  const fontFamily = document.getElementById('fontFamily').value;
-  const fontSize = parseInt(document.getElementById('fontSize').value);
-  const titleSize = parseInt(document.getElementById('titleSize').value);
-  const textColor = document.getElementById('textColor').value;
-  const accentColor = document.getElementById('accentColor').value;
-  const lineHeight = parseFloat(document.getElementById('lineHeight').value) / 100;
+  // === 2. TEXTURA DECORATIVA (manchas, ruido) ===
+  drawDecorations(ctx, w, h, accentColor, index);
 
-  const maxWidth = w - padding * 2;
+  // === 3. LAYOUT POR TIPO ===
+  if (isPortada) {
+    drawLayoutPortada(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio, showBandImg);
+  } else if (isIntegr) {
+    drawLayoutIntegrantes(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio);
+  } else if (isUltimo) {
+    drawLayoutUltimo(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio, showBandImg);
+  } else {
+    drawLayoutGenerico(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio);
+  }
 
-  // Layout: título arriba, body abajo
-  ctx.textAlign = state.align;
-  const xAnchor = state.align === 'left' ? padding : state.align === 'right' ? w - padding : w / 2;
+  // === 4. FOOTER ===
+  drawSlideFooter(ctx, w, h, padding, textColor, index, total);
+}
 
-  // Title
+// ─────────────────────────────────────────────────────────────────
+//  DECORACIONES — manchas y líneas estilo poster rock
+// ─────────────────────────────────────────────────────────────────
+function drawDecorations(ctx, w, h, accentColor, slideIndex) {
+  ctx.save();
+
+  // Líneas verticales laterales decorativas (numeración estilo BTS)
+  const lineColor = hexToRgba(accentColor, 0.12);
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const x = w * 0.04 + i * 6;
+    ctx.beginPath(); ctx.moveTo(x, h * 0.06); ctx.lineTo(x, h * 0.94); ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = w * 0.96 - i * 6;
+    ctx.beginPath(); ctx.moveTo(x, h * 0.06); ctx.lineTo(x, h * 0.94); ctx.stroke();
+  }
+
+  // Mancha de color arriba izquierda (tipo splash)
+  ctx.globalAlpha = 0.06 + (slideIndex % 3) * 0.02;
   ctx.fillStyle = accentColor;
-  ctx.font = `800 ${titleSize}px ${fontFamily}`;
-  const titleLines = wrapText(ctx, slide.title, maxWidth);
-  const titleBlockHeight = titleLines.length * titleSize * lineHeight;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.12, h * 0.08, w * 0.18, h * 0.08, -0.4, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Body
-  ctx.font = `400 ${fontSize}px ${fontFamily}`;
+  // Mancha abajo derecha
+  ctx.globalAlpha = 0.05;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.88, h * 0.92, w * 0.14, h * 0.07, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Línea horizontal accent arriba
+  ctx.globalAlpha = 0.7;
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.07, h * 0.055);
+  ctx.lineTo(w * 0.26, h * 0.055);
+  ctx.stroke();
+
+  // Zigzag decorativo tipo onda — arriba izquierda
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  let zx = w * 0.07, zy = h * 0.04;
+  const zStep = w * 0.025, zAmp = h * 0.018;
+  for (let i = 0; i < 6; i++) {
+    ctx.lineTo(zx + zStep, zy + (i % 2 === 0 ? -zAmp : zAmp));
+    zx += zStep;
+  }
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LAYOUT PORTADA — foto banda izquierda / texto derecha
+// ─────────────────────────────────────────────────────────────────
+function drawLayoutPortada(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh, showImg) {
+  const hasImg = showImg && state.bandImg;
+
+  if (hasImg) {
+    // Imagen ocupa mitad izquierda con clip redondeado
+    const imgW = w * 0.48;
+    const imgH = h * 0.62;
+    const imgX = pad * 1.2;
+    const imgY = (h - imgH) / 2;
+
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
+    ctx.clip();
+    drawImageCover(ctx, state.bandImg, imgX, imgY, imgW, imgH);
+    ctx.restore();
+
+    // Borde sutil de la imagen
+    ctx.strokeStyle = ac;
+    ctx.lineWidth = 2;
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
+    ctx.stroke();
+    ctx.restore();
+
+    // Texto lado derecho
+    const tx = imgX + imgW + pad * 0.7;
+    const tw = w - tx - pad * 0.8;
+    drawTextBlock(ctx, slide, tx, pad, tw, h, ff, fs, ts, tc, ac, lh, 'left', 'middle');
+  } else {
+    // Sin imagen: texto centrado grande tipo portada
+    const tagLine = 'HOY TE INVITAMOS\nA CONOCER A:';
+    ctx.fillStyle = tc;
+    ctx.globalAlpha = 0.6;
+    ctx.font = `700 ${Math.round(fs * 0.7)}px ${ff}`;
+    ctx.textAlign = 'center';
+    const tagLines = tagLine.split('\n');
+    let ty = h * 0.22;
+    tagLines.forEach(l => { ctx.fillText(l.toUpperCase(), w / 2, ty); ty += fs * 1.1; });
+    ctx.globalAlpha = 1;
+
+    // Nombre grande centrado
+    ctx.fillStyle = ac;
+    ctx.font = `800 ${ts}px ${ff}`;
+    ctx.textAlign = 'center';
+    const nameLines = wrapText(ctx, slide.title.toUpperCase(), w - pad * 2.5);
+    let ny = h * 0.52;
+    nameLines.forEach(l => { ctx.fillText(l, w / 2, ny); ny += ts * lh; });
+
+    // Subtexto (body primer párrafo)
+    const firstLine = slide.body.split('\n').filter(Boolean)[0] || '';
+    ctx.fillStyle = tc;
+    ctx.globalAlpha = 0.75;
+    ctx.font = `400 ${Math.round(fs * 0.82)}px ${ff}`;
+    const subLines = wrapText(ctx, firstLine, w - pad * 3);
+    let sy = ny + ts * 0.4;
+    subLines.slice(0, 3).forEach(l => { ctx.fillText(l, w / 2, sy); sy += fs * lh; });
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LAYOUT INTEGRANTES — lista con bullet decorativo
+// ─────────────────────────────────────────────────────────────────
+function drawLayoutIntegrantes(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh) {
+  // Título en la parte superior
+  const titleY = pad + ts;
+  ctx.fillStyle = ac;
+  ctx.font = `800 ${ts}px ${ff}`;
+  ctx.textAlign = 'left';
+  const titleLines = wrapText(ctx, slide.title.toUpperCase(), w - pad * 2.2);
+  let y = titleY;
+  titleLines.forEach(l => { ctx.fillText(l, pad * 1.3, y); y += ts * lh; });
+
+  // Línea separadora
+  ctx.strokeStyle = ac;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad * 1.3, y + 8);
+  ctx.lineTo(pad * 1.3 + 80, y + 8);
+  ctx.stroke();
+  y += 30;
+
+  // Lista de integrantes — cada uno en su fila
+  const lines = slide.body.split('\n').filter(l => l.trim());
+  const itemFs = Math.min(fs, Math.floor((h - y - pad * 2) / Math.max(lines.length, 1) / lh * 0.9));
+  ctx.font = `400 ${itemFs}px ${ff}`;
+
+  lines.forEach((line, i) => {
+    // Bullet cuadrado
+    ctx.fillStyle = ac;
+    ctx.fillRect(pad * 1.3, y - itemFs * 0.7, 6, itemFs * 0.75);
+
+    // Texto
+    ctx.fillStyle = tc;
+    const clean = line.replace(/^•\s*/, '');
+    const linesWrapped = wrapText(ctx, clean, w - pad * 2.2 - 18);
+    linesWrapped.forEach((l, j) => {
+      ctx.fillText(l, pad * 1.3 + 18, y + j * itemFs * lh);
+    });
+    y += (linesWrapped.length * itemFs * lh) + itemFs * 0.3;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LAYOUT ÚLTIMO LANZAMIENTO — imagen portada disco + texto
+// ─────────────────────────────────────────────────────────────────
+function drawLayoutUltimo(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh, showImg) {
+  const hasImg = showImg && state.bandImg;
+
+  // Recuadro decorativo para imagen (álbum) o placeholder
+  const boxW = w * 0.7;
+  const boxH = h * 0.42;
+  const boxX = (w - boxW) / 2;
+  const boxY = pad * 1.2;
+
+  if (hasImg) {
+    ctx.save();
+    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
+    ctx.clip();
+    drawImageCover(ctx, state.bandImg, boxX, boxY, boxW, boxH);
+    // Overlay oscuro encima de la imagen
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.restore();
+
+    // Nombre de la banda sobre la imagen
+    ctx.fillStyle = ac;
+    ctx.font = `800 ${Math.round(ts * 0.65)}px ${ff}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(state.bandData.name.toUpperCase(), w / 2, boxY + boxH * 0.52);
+  } else {
+    // Placeholder geométrico
+    ctx.strokeStyle = ac;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.save();
+    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
+    ctx.stroke();
+    ctx.restore();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = hexToRgba(ac, 0.15);
+    ctx.save();
+    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = ac;
+    ctx.font = `800 ${Math.round(ts * 0.55)}px ${ff}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('ÚLTIMO LANZAMIENTO', w / 2, boxY + boxH * 0.55);
+  }
+
+  // Caption debajo de la imagen
+  const captionY = boxY + boxH + 18;
+  ctx.fillStyle = hexToRgba(tc, 0.5);
+  ctx.font = `500 ${Math.round(fs * 0.62)}px 'JetBrains Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(state.bandData ? state.bandData.name.toUpperCase() + ' — PUEDEN ENCONTRARLO EN SPOTIFY / YOUTUBE' : '', w / 2, captionY + 16);
+
+  // Texto del lanzamiento abajo
+  const textY = captionY + 50;
+  ctx.fillStyle = tc;
+  ctx.font = `400 ${fs}px ${ff}`;
+  ctx.textAlign = 'center';
+  const bodyLines = [];
+  slide.body.split('\n').filter(Boolean).forEach(p => {
+    wrapText(ctx, p, w - pad * 2.5).forEach(l => bodyLines.push(l));
+    bodyLines.push('');
+  });
+  let ly = textY;
+  bodyLines.forEach(l => {
+    if (l) ctx.fillText(l, w / 2, ly);
+    ly += fs * lh;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LAYOUT GENÉRICO — título + columna de texto
+// ─────────────────────────────────────────────────────────────────
+function drawLayoutGenerico(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh) {
+  const innerPad = pad * 1.3;
+  const innerW = w - innerPad * 2;
+
+  // Título
+  ctx.fillStyle = ac;
+  ctx.font = `800 ${ts}px ${ff}`;
+  ctx.textAlign = 'left';
+  const titleLines = wrapText(ctx, slide.title.toUpperCase(), innerW);
+  let y = pad + ts;
+  titleLines.forEach(l => { ctx.fillText(l, innerPad, y); y += ts * lh; });
+
+  // Línea accent
+  ctx.strokeStyle = ac;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(innerPad, y + 10); ctx.lineTo(innerPad + 70, y + 10); ctx.stroke();
+  y += 30;
+
+  // Body — párrafos separados
+  const paragraphs = slide.body.split('\n');
+  ctx.font = `400 ${fs}px ${ff}`;
+  paragraphs.forEach(para => {
+    if (!para.trim()) { y += fs * 0.5; return; }
+    ctx.fillStyle = tc;
+    const paraLines = wrapText(ctx, para, innerW);
+    paraLines.forEach(l => {
+      if (y + fs > h - pad * 1.5) return; // no salir del canvas
+      ctx.fillText(l, innerPad, y);
+      y += fs * lh;
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  HELPER: bloque de texto con alineación y posición vertical
+// ─────────────────────────────────────────────────────────────────
+function drawTextBlock(ctx, slide, x, topPad, maxW, h, ff, fs, ts, tc, ac, lh, align, valign) {
+  ctx.textAlign = align;
+  const ax = align === 'center' ? x + maxW / 2 : align === 'right' ? x + maxW : x;
+
+  ctx.font = `800 ${ts}px ${ff}`;
+  const titleLines = wrapText(ctx, slide.title.toUpperCase(), maxW);
+  const titleH = titleLines.length * ts * lh;
+
+  ctx.font = `400 ${fs}px ${ff}`;
   const bodyParagraphs = slide.body.split('\n');
   const bodyLines = [];
   bodyParagraphs.forEach(p => {
-    if (p.trim() === '') {
-      bodyLines.push('');
-    } else {
-      wrapText(ctx, p, maxWidth).forEach(l => bodyLines.push(l));
-    }
+    if (!p.trim()) { bodyLines.push(''); return; }
+    wrapText(ctx, p, maxW).forEach(l => bodyLines.push(l));
   });
-  const bodyBlockHeight = bodyLines.length * fontSize * lineHeight;
+  const bodyH = bodyLines.length * fs * lh;
+  const gap = fs * 0.8;
+  const totalH = titleH + gap + bodyH;
 
-  const gap = fontSize * 0.8;
-  const totalHeight = titleBlockHeight + gap + bodyBlockHeight;
-
-  // Vertical anchor
   let startY;
-  if (state.valign === 'top') startY = padding;
-  else if (state.valign === 'bottom') startY = h - padding - totalHeight;
-  else startY = (h - totalHeight) / 2;
+  if (valign === 'top') startY = topPad;
+  else if (valign === 'bottom') startY = h - topPad - totalH;
+  else startY = (h - totalH) / 2;
 
-  // Dibujar título
-  ctx.fillStyle = accentColor;
-  ctx.font = `800 ${titleSize}px ${fontFamily}`;
-  let y = startY + titleSize;
-  titleLines.forEach(line => {
-    ctx.fillText(line, xAnchor, y);
-    y += titleSize * lineHeight;
+  ctx.fillStyle = ac;
+  ctx.font = `800 ${ts}px ${ff}`;
+  let y = startY + ts;
+  titleLines.forEach(l => { ctx.fillText(l, ax, y); y += ts * lh; });
+
+  ctx.strokeStyle = ac;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  const lx = align === 'left' ? x : align === 'right' ? x + maxW - 70 : x + maxW / 2 - 35;
+  ctx.moveTo(lx, y + 8); ctx.lineTo(lx + 70, y + 8);
+  ctx.stroke();
+  y += gap;
+
+  ctx.fillStyle = tc;
+  ctx.font = `400 ${fs}px ${ff}`;
+  y += fs;
+  bodyLines.forEach(l => {
+    if (l) ctx.fillText(l, ax, y);
+    y += fs * lh;
   });
+}
 
-  // Pequeña línea decorativa entre título y body
-  if (slide.title && slide.body) {
-    const lineY = startY + titleBlockHeight + gap / 2;
-    ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    const lw = 60;
-    let lx1, lx2;
-    if (state.align === 'left') { lx1 = padding; lx2 = padding + lw; }
-    else if (state.align === 'right') { lx1 = w - padding - lw; lx2 = w - padding; }
-    else { lx1 = w / 2 - lw / 2; lx2 = w / 2 + lw / 2; }
-    ctx.moveTo(lx1, lineY); ctx.lineTo(lx2, lineY);
-    ctx.stroke();
-  }
-
-  // Body
-  ctx.fillStyle = textColor;
-  ctx.font = `400 ${fontSize}px ${fontFamily}`;
-  y = startY + titleBlockHeight + gap + fontSize;
-  bodyLines.forEach(line => {
-    if (line !== '') ctx.fillText(line, xAnchor, y);
-    y += fontSize * lineHeight;
-  });
-
-  // Footer: número de slide
-  const total = totalOverride || state.slides.length;
-  ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.4;
-  ctx.font = `500 ${Math.max(18, w * 0.018)}px 'JetBrains Mono', monospace`;
+// ─────────────────────────────────────────────────────────────────
+//  FOOTER DEL SLIDE
+// ─────────────────────────────────────────────────────────────────
+function drawSlideFooter(ctx, w, h, pad, tc, index, total) {
+  const fSize = Math.max(18, w * 0.018);
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = tc;
+  ctx.font = `500 ${fSize}px 'JetBrains Mono', monospace`;
   ctx.textAlign = 'left';
-  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`, padding / 2 + 20, h - padding / 2);
+  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`, pad * 0.6 + 20, h - pad * 0.5);
   ctx.textAlign = 'right';
-  ctx.fillText('BAND·CAROUSEL', w - padding / 2 - 20, h - padding / 2);
-  ctx.globalAlpha = 1;
+  ctx.fillText('BAND·CAROUSEL', w - pad * 0.6 - 20, h - pad * 0.5);
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────────
+function drawImageCover(ctx, img, x, y, w, h) {
+  const scale = Math.max(w / img.width, h / img.height);
+  const sw = img.width * scale;
+  const sh = img.height * scale;
+  const sx = x + (w - sw) / 2;
+  const sy = y + (h - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function drawBackground(ctx, w, h) {
