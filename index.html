@@ -1011,10 +1011,11 @@ async function searchBand(name) {
 // ============================================================================
 //  COMPOSICIÓN DE SLIDES
 // ============================================================================
-function composeSlides(data, count) {
+function composeSlides(data, count, h) {
+  // h = objeto humanizado de Claude API (puede ser null → fallback a datos crudos)
   const slides = [];
 
-  // === BLOQUES DE CONTENIDO ===
+  // === BLOQUES BASE (siempre disponibles) ===
   const bandName = data.name.toUpperCase();
   const origin = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
   const start = (data.lifeSpan.begin || '').slice(0, 4);
@@ -1025,89 +1026,72 @@ function composeSlides(data, count) {
 
   const styles = data.genres.length ? data.genres : data.tags;
   const styleList = styles.length ? styles.slice(0, 5).map(s => s.replace(/\b\w/g, c => c.toUpperCase())).join(' · ') : 'Estilo no clasificado';
-  const styleDesc = buildStyleDescription(styles, data.wiki);
 
   const albumLines = data.albums.length
     ? data.albums.map(a => `${a.year} · ${a.title}`)
     : ['Sin álbumes registrados en MusicBrainz'];
 
   const latest = data.albums.length ? data.albums[data.albums.length - 1] : null;
-  const latestLine = latest
-    ? `${latest.title}\nLanzado en ${latest.year}`
-    : 'No hay lanzamientos recientes registrados';
 
-  const trajectory = buildTrajectory(data);
   const membersText = buildMembersText(data.members);
-  const historyText = buildHistoryText(data);
+
+  // === TEXTOS — humanizados si existen, fallback si no ===
+  const portadaTag   = h?.portada_tag   || 'Te invitamos a conocer a:';
+  const historia     = h?.historia      || buildHistoryText(data);
+  const estilo       = h?.estilo        || (buildStyleDescription(styles, data.wiki) || styleList);
+  const integrIntro  = h?.integrantes_intro || 'La banda está formada por:';
+  const discoIntro   = h?.discografia_intro || 'Su camino discográfico:';
+  const ultimoCtx    = h?.ultimo_contexto   || (latest ? `${latest.title}, lanzado en ${latest.year}.` : 'Sin lanzamientos recientes.');
+  const cierre       = h?.cierre        || 'Buscalos y dale play.';
 
   // === DISTRIBUCIÓN ===
   if (count === 1) {
-    // Todo en una sola: muy denso
     slides.push({
       title: bandName,
-      body:
-`${origin} · ${yearLine}
-
-ESTILO
-${styleList}
-
-INTEGRANTES
-${membersText.short}
-
-DISCOGRAFÍA
-${albumLines.slice(0, 6).join('\n')}${data.albums.length > 6 ? `\n+ ${data.albums.length - 6} álbumes más` : ''}
-
-ÚLTIMO LANZAMIENTO
-${latestLine}`
+      body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia.split('\n')[0]}\n\nINTEGRANTES\n${membersText.short}\n\nDISCOGRAFÍA\n${albumLines.slice(0,6).join('\n')}\n\nÚLTIMO LANZAMIENTO\n${ultimoCtx}`
     });
   } else if (count === 2) {
-    slides.push({
-      title: bandName,
-      body: `${origin}\n${yearLine}\n\nESTILO\n${styleList}\n\n${styleDesc}\n\nINTEGRANTES\n${membersText.short}`
-    });
-    slides.push({
-      title: 'DISCOGRAFÍA',
-      body: `${albumLines.join('\n')}\n\nÚLTIMO LANZAMIENTO\n${latestLine}`
-    });
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
   } else if (count === 3) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${historyText}` });
-    slides.push({ title: 'ESTILO E INTEGRANTES', body: `${styleList}\n\n${styleDesc}\n\n— INTEGRANTES —\n${membersText.short}` });
-    slides.push({ title: 'DISCOGRAFÍA', body: `${albumLines.join('\n')}\n\n— — —\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
+    slides.push({ title: 'ESTILO', body: `${estilo}\n\n${integrIntro}\n${membersText.short}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
   } else if (count === 4) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}\n\n${historyText}` });
-    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'INTEGRANTES', body: membersText.full });
-    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + `\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}\n\n${historia}` });
+    slides.push({ title: 'ESTILO', body: estilo });
+    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${ultimoCtx}` });
   } else if (count === 5) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historyText });
-    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'INTEGRANTES', body: membersText.full });
-    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') + `\n\nÚLTIMO: ${latestLine.replace('\n', ' · ')}` });
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
+    slides.push({ title: 'HISTORIA', body: historia });
+    slides.push({ title: 'ESTILO', body: estilo });
+    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}\n\n${cierre}` });
   } else if (count === 6) {
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historyText });
-    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'INTEGRANTES', body: membersText.full });
-    slides.push({ title: 'DISCOGRAFÍA', body: albumLines.join('\n') });
-    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
+    slides.push({ title: 'HISTORIA', body: historia });
+    slides.push({ title: 'ESTILO', body: estilo });
+    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
+    slides.push({ title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}` });
+    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
   } else {
-    // 7+: dividimos discografía si hace falta
-    slides.push({ title: bandName, body: `${origin}\n${yearLine}` });
-    slides.push({ title: 'HISTORIA', body: historyText });
-    slides.push({ title: 'ESTILO', body: `${styleList}\n\n${styleDesc}` });
-    slides.push({ title: 'INTEGRANTES', body: membersText.full });
+    // 7+: discografía se parte
+    slides.push({ title: bandName, body: `${portadaTag}\n${origin} · ${yearLine}` });
+    slides.push({ title: 'HISTORIA', body: historia });
+    slides.push({ title: 'ESTILO', body: estilo });
+    slides.push({ title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
 
-    const discoSlots = count - 5; // -4 anteriores y -1 para último lanzamiento
+    const discoSlots = count - 5;
     const albumsPerSlide = Math.ceil(albumLines.length / discoSlots);
     for (let i = 0; i < discoSlots; i++) {
       const chunk = albumLines.slice(i * albumsPerSlide, (i + 1) * albumsPerSlide);
       slides.push({
         title: discoSlots > 1 ? `DISCOGRAFÍA · ${i + 1}/${discoSlots}` : 'DISCOGRAFÍA',
-        body: chunk.length ? chunk.join('\n') : 'Sin más álbumes'
+        body: (i === 0 ? discoIntro + '\n\n' : '') + (chunk.length ? chunk.join('\n') : 'Sin más álbumes')
       });
     }
-    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: latestLine });
+    slides.push({ title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
   }
 
   return slides;
@@ -1231,17 +1215,25 @@ async function generate() {
   output.innerHTML = `
     <div class="loading">
       <div class="spinner"></div>
-      <div>Consultando MusicBrainz</div>
-      <div style="font-size:10px; color:var(--muted);">~3-5 segundos · rate limit 1 req/s</div>
+      <div id="loadingMain">Consultando MusicBrainz…</div>
+      <div id="loadingSub" style="font-size:10px; color:var(--muted);">~3-5 segundos · rate limit 1 req/s</div>
     </div>`;
   document.getElementById('generateBtn').disabled = true;
   document.getElementById('stageMeta').textContent = `Buscando "${name}"…`;
 
   try {
+    // PASO 1 — MusicBrainz + Wikipedia
+    updateLoading('Consultando MusicBrainz…', '~3-5 seg · rate limit 1 req/s');
     const data = await searchBand(name);
     state.bandData = data;
     state.bandImg = data.wikiImage || null;
-    state.slides = composeSlides(data, count);
+
+    // PASO 2 — Humanizar con Claude API
+    updateLoading('Redactando con IA…', 'Generando texto con personalidad');
+    const humanized = await humanizeWithClaude(data, count);
+
+    // PASO 3 — Componer slides con texto humanizado
+    state.slides = composeSlides(data, count, humanized);
 
     document.getElementById('stageTitle').innerHTML = `${data.name}<span>.</span>`;
     document.getElementById('stageMeta').textContent =
@@ -1261,6 +1253,75 @@ async function generate() {
       </div>`;
   } finally {
     document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+function updateLoading(main, sub) {
+  const m = document.getElementById('loadingMain');
+  const s = document.getElementById('loadingSub');
+  if (m) m.textContent = main;
+  if (s) s.textContent = sub;
+}
+
+// ============================================================================
+//  HUMANIZACIÓN VÍA CLAUDE API
+// ============================================================================
+async function humanizeWithClaude(data, slideCount) {
+  const albumList = data.albums.map(a => `${a.year} — ${a.title}`).join('\n');
+  const memberList = data.members.slice(0, 10).map(m => {
+    const inst = m.instruments.length ? ` (${m.instruments.slice(0,2).join(', ')})` : '';
+    const period = m.begin ? (m.ended ? ` [${m.begin}–${m.end}]` : ` [desde ${m.begin}]`) : '';
+    return `${m.name}${inst}${period}`;
+  }).join(', ') || 'No documentados';
+
+  const prompt = `Sos un community manager apasionado por la música que escribe carruseles de Instagram sobre bandas. 
+Tu tono: cálido, entusiasta, con personalidad. No usás frases corporativas ni listas frías. Escribís como alguien que genuinamente escucha y siente la música.
+Usás mayúsculas con criterio (no todo en caps). Sin emojis. Sin hashtags. Sin asteriscos ni markdown.
+
+Datos de la banda:
+NOMBRE: ${data.name}
+ORIGEN: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
+AÑO DE INICIO: ${(data.lifeSpan.begin || '').slice(0,4) || 'desconocido'}
+AÑO FIN: ${data.lifeSpan.ended ? (data.lifeSpan.end || '').slice(0,4) : 'aún activos'}
+GÉNEROS/ESTILOS: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
+INTEGRANTES: ${memberList}
+DISCOGRAFÍA: 
+${albumList || 'Sin álbumes registrados'}
+ÚLTIMO LANZAMIENTO: ${data.albums.length ? data.albums[data.albums.length-1].title + ' (' + data.albums[data.albums.length-1].year + ')' : 'desconocido'}
+RESUMEN WIKIPEDIA: ${data.wiki || 'No disponible'}
+
+Generá un JSON con EXACTAMENTE estas claves. Responde SOLO el JSON sin ningún texto extra ni backticks:
+{
+  "portada_tag": "frase corta de 4-7 palabras tipo 'Hoy te presentamos a:' o 'Una banda que no para de crecer' (con naturalidad)",
+  "historia": "2-3 párrafos narrativos sobre el origen, contexto y trayectoria. Que suene a que lo escribió alguien que los conoce. Explayate. Máximo 300 palabras.",
+  "estilo": "1-2 párrafos explicando su sonido y propuesta. Sin palabras técnicas vacías. Describí cómo suena en términos que cualquiera pueda sentir. Máximo 150 palabras.",
+  "integrantes_intro": "1 oración introductoria cálida antes de listar la formación (ej: 'Detrás del sonido hay personas con historias propias:')",
+  "discografia_intro": "1-2 oraciones que enmarquen la discografía con contexto emocional o artístico antes de listarla",
+  "ultimo_contexto": "2-3 oraciones que expliquen qué significa este último lanzamiento para la banda, su evolución, qué representa. Con pasión.",
+  "cierre": "1-2 oraciones de cierre tipo llamada a la acción orgánica, que invite a escucharlos. Sin el típico 'seguinos en redes'."
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) throw new Error('Claude API ' + res.status);
+    const apiData = await res.json();
+    const raw = apiData.content.map(c => c.text || '').join('');
+    // Limpiar posibles backticks
+    const clean = raw.replace(/```json|```/gi, '').trim();
+    return JSON.parse(clean);
+  } catch(e) {
+    console.warn('Humanización falló, usando datos crudos:', e.message);
+    // Fallback: devuelve null, composeSlides usará el modo anterior
+    return null;
   }
 }
 
