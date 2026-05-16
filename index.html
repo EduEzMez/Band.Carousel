@@ -219,7 +219,7 @@ footer{border-top:1px solid var(--border);padding:12px 16px;display:flex;align-i
     <h2>Banda</h2>
     <label for="bandName">Nombre</label>
     <input type="text" id="bandName" placeholder="Ej: blink-182" autocomplete="off">
-    <div class="help-text">MusicBrainz + Wikipedia + búsqueda web con IA</div>
+    <div class="help-text">Búsqueda web + IA · funciona con cualquier banda</div>
   </section>
 
   <section>
@@ -359,11 +359,7 @@ const S = {
   activeSections:{portada:true,historia:true,estilo:true,integrantes:true,discografia:true,ultimo:true},
   modalIndex:0,
 };
-const MB  = 'https://musicbrainz.org/ws/2';
-const WES = 'https://es.wikipedia.org/api/rest_v1/page/summary';
-const WEN = 'https://en.wikipedia.org/api/rest_v1/page/summary';
 const RK  = 'bandcarousel_recent';
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
 // ── UI BINDINGS ─────────────────────────────────────────────────
 function seg(id,key,cb){
@@ -422,7 +418,7 @@ renderRecent();
 function getRecent(){try{return JSON.parse(localStorage.getItem(RK)||'[]');}catch{return[];}}
 function saveRecent(data){
   let l=getRecent().filter(r=>r.name.toLowerCase()!==data.name.toLowerCase());
-  l.unshift({name:data.name,area:[data.beginArea,data.country].filter(Boolean).join(', '),ts:Date.now()});
+  l.unshift({name:data.name, area: data.country || data.area || '', ts:Date.now()});
   l=l.slice(0,5); try{localStorage.setItem(RK,JSON.stringify(l));}catch{}
   renderRecent();
 }
@@ -461,16 +457,7 @@ function resetAll(){
   document.getElementById('output').innerHTML=`<div class="empty-state"><div class="dot">●</div><h3>Creador de<br><em>Carruseles</em></h3><p>Escribí el nombre de una banda, elegí las secciones y generá el carrusel listo para Instagram.</p></div>`;
 }
 
-// ── FETCH ───────────────────────────────────────────────────────
-async function fetchMB(path){
-  const r=await fetch(`${MB}/${path}${path.includes('?')?'&':'?'}fmt=json`);
-  if(!r.ok)throw new Error('MusicBrainz '+r.status); return r.json();
-}
-async function fetchWiki(title){
-  for(const b of[WES,WEN]){
-    try{const r=await fetch(`${b}/${encodeURIComponent(title)}`);if(r.ok){const d=await r.json();if(d.extract?.length>50)return d;}}catch{}
-  } return null;
-}
+// ── IMAGEN WIKIPEDIA (sigue siendo útil para la foto) ────────────
 async function fetchWikiImg(title){
   for(const lang of['en','es']){
     try{
@@ -489,78 +476,123 @@ function loadImg(url){
   });
 }
 
-// ── SEARCH BAND (#1: fallback IA si MB no encuentra) ────────────
-async function searchBand(name){
-  try{
-    const s=await fetchMB(`artist?query=artist:${encodeURIComponent(name)}&limit=5`);
-    const artist=(s.artists||[]).find(a=>a.type==='Group')||(s.artists||[])[0];
-    if(!artist)throw new Error('no encontrado');
-    await sleep(1100);
-    const d=await fetchMB(`artist/${artist.id}?inc=tags+genres+artist-rels`);
-    const members=[];
-    (d.relations||[]).forEach(rel=>{
-      if(rel.type==='member of band'&&rel.direction==='backward'&&rel.artist)
-        members.push({name:rel.artist.name,begin:(rel.begin||'').slice(0,4),end:(rel.end||'').slice(0,4),ended:rel.ended,instruments:(rel.attributes||[]).filter(a=>!['original','additional','guest'].includes(a.toLowerCase()))});
+// ── INVESTIGACIÓN COMPLETA CON CLAUDE + WEB_SEARCH ───────────────
+// Una sola llamada multi-turno: Claude busca todo lo que necesita
+// y devuelve el JSON completo listo para usar. Sin MusicBrainz.
+async function researchBand(name){
+  updateLoading(1);
+
+  const systemPrompt = `Sos un investigador y community manager musical experto. Tu tarea es investigar una banda usando web_search y producir un JSON completo y preciso con toda la información necesaria para armar un carrusel de Instagram de calidad profesional.
+
+INSTRUCCIONES CRÍTICAS:
+- Hacé MÚLTIPLES búsquedas para triangular la información (historia, integrantes, discografía, último lanzamiento, estilo, curiosidades)
+- Buscá en español SI la banda es hispanohablante, en inglés si es internacional
+- Usá fuentes como Wikipedia, AllMusic, Genius, Pitchfork, La Nación, Rolling Stone, sitios oficiales
+- La info tiene que ser VERAZ y ESPECÍFICA — fechas, nombres, lugares reales
+- El tono de los textos: cálido, humano, apasionado. Sin frases corporativas. Sin emojis. Sin hashtags.
+- Español rioplatense cuando corresponda
+- Cuando termines de investigar, respondé SOLO con el JSON final, sin explicaciones, sin backticks`;
+
+  const userPrompt = `Investigá exhaustivamente la banda/artista: "${name}"
+
+Hacé todas las búsquedas que necesites y luego devolvé ÚNICAMENTE este JSON (sin backticks, sin texto extra):
+
+{
+  "name": "nombre oficial de la banda",
+  "origin": "ciudad y país de origen",
+  "founded": "año de formación",
+  "dissolved": "año de disolución o null si siguen activos",
+  "active": true/false,
+  "genres": ["género 1", "género 2"],
+  "members_current": ["nombre — instrumento", ...],
+  "members_past": ["nombre — instrumento (años)", ...],
+  "portada_tag": "frase gancho 5-8 palabras que genere curiosidad, SIN el nombre de la banda",
+  "historia": "MÍNIMO 4 párrafos bien desarrollados. Contexto de época y escena musical donde surgieron. Cómo se formaron, quiénes son. Momentos clave de su carrera: giras, premios, controversias, hitos. Evolución artística. Anécdotas concretas si las encontraste. Que se lea como un artículo de Rolling Stone, no como Wikipedia. Mínimo 450 palabras.",
+  "estilo": "2 párrafos sustanciales. Primero: cómo suena su música describiendo con metáforas y referencias concretas a canciones o álbumes. Segundo: qué exploran líricamente, cuál es su propuesta conceptual o emocional. Mínimo 200 palabras.",
+  "integrantes_intro": "oración cálida y específica que presente a los integrantes antes de listarlos",
+  "albums": [{"year": "año", "title": "título"}, ...],
+  "discografia_intro": "2-3 oraciones que enmarquen la discografía como un viaje artístico con momentos concretos",
+  "ultimo_album": {"year": "año", "title": "título"},
+  "ultimo_contexto": "3-4 oraciones sobre el último lanzamiento: qué representa para la banda, qué tiene de especial, por qué vale la pena escucharlo. Con convicción y detalle.",
+  "cierre": "2 oraciones de cierre: una que invite genuinamente a escucharlos, otra con un dato curioso o reflexión que deje pensando al lector"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: userPrompt }]
+      })
     });
-    members.sort((a,b)=>a.ended!==b.ended?a.ended?1:-1:(a.begin||'9999').localeCompare(b.begin||'9999'));
-    await sleep(1100);
-    const rg=await fetchMB(`release-group?artist=${artist.id}&type=album&limit=100`);
-    const albums=(rg['release-groups']||[]).filter(r=>r['first-release-date']&&r['primary-type']==='Album').filter(r=>{const s=r['secondary-types']||[];return!s.includes('Compilation')&&!s.includes('Live')&&!s.includes('Soundtrack');}).sort((a,b)=>(a['first-release-date']||'').localeCompare(b['first-release-date']||'')).map(a=>({title:a.title,year:(a['first-release-date']||'').slice(0,4)}));
-    const wiki=await fetchWiki(d.name);
-    const wikiImage=await fetchWikiImg(d.name);
-    return{name:d.name,country:d.country||d.area?.name||null,area:d.area?.name||null,beginArea:d['begin-area']?.name||null,lifeSpan:d['life-span']||{},tags:(d.tags||[]).sort((a,b)=>b.count-a.count).slice(0,6).map(t=>t.name),genres:(d.genres||[]).sort((a,b)=>b.count-a.count).slice(0,4).map(g=>g.name),albums,members,wiki:wiki?.extract||null,wikiImage,fromMB:true};
-  }catch(e){
-    console.warn('MB falló:',e.message);
-    return{name,country:null,area:null,beginArea:null,lifeSpan:{},tags:[],genres:[],albums:[],members:[],wiki:null,wikiImage:null,fromMB:false};
+
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+
+    // Extraer el texto final — Claude puede hacer varias búsquedas antes de responder
+    // El JSON final estará en el último bloque de texto
+    const textBlocks = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text);
+
+    // Tomar el último bloque de texto que contenga un JSON válido
+    let parsed = null;
+    for (let i = textBlocks.length - 1; i >= 0; i--) {
+      const match = textBlocks[i].replace(/```json|```/gi, '').trim().match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); break; }
+        catch {}
+      }
+    }
+
+    if (!parsed) throw new Error('No se pudo parsear la respuesta de la IA');
+    return parsed;
+
+  } catch(e) {
+    throw new Error(`Error investigando la banda: ${e.message}`);
   }
 }
 
-// ── HUMANIZE (#1 fallback, #web search) ─────────────────────────
-async function humanizeWithClaude(data){
-  const albumList=data.albums.map(a=>`${a.year} — ${a.title}`).join('\n')||'No disponible';
-  const memberList=data.members.slice(0,10).map(m=>{
-    const inst=m.instruments.length?` (${m.instruments.slice(0,2).join(', ')})`:'';
-    const period=m.begin?(m.ended?` [${m.begin}–${m.end}]`:` [desde ${m.begin}]`):'';
-    return m.name+inst+period;
-  }).join(', ')||'No documentados';
-
-  // Paso 1: web search
-  updateLoading(1);
-  let webFindings='';
-  try{
-    const sr=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Investigá la banda "${data.name}" para un carrusel de Instagram. Buscá: historia de formación, sonido, hitos de carrera, último lanzamiento, curiosidades. Base: origen=${[data.beginArea,data.area,data.country].filter(Boolean).join(', ')||'?'}, géneros=${[...data.genres,...data.tags].slice(0,5).join(', ')}, wiki=${data.wiki?.slice(0,300)||'no disponible'}.`}]})});
-    if(sr.ok){const sd=await sr.json();webFindings=(sd.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').slice(0,3000);}
-  }catch(e){console.warn('web search:',e.message);}
-
-  // Paso 2: redactar
-  updateLoading(2);
-  const wp=`Sos un community manager musical. Carruseles de Instagram auténticos, cálidos, sin frases corporativas. Sin emojis ni hashtags. Español rioplatense.
-${!data.fromMB?'⚠️ No hay datos MB. Usá búsqueda web y tu conocimiento.':''}
-BANDA: ${data.name}
-Origen: ${[data.beginArea,data.area,data.country].filter(Boolean).join(', ')||'?'} | Período: ${(data.lifeSpan.begin||'').slice(0,4)||'?'} → ${data.lifeSpan.ended?((data.lifeSpan.end||'').slice(0,4)||'?'):'presente'}
-Géneros: ${[...data.genres,...data.tags].slice(0,6).join(', ')||'?'} | Integrantes: ${memberList}
-Discografía: ${albumList} | Último: ${data.albums.length?data.albums[data.albums.length-1].title+' ('+data.albums[data.albums.length-1].year+')':'?'}
-Wiki: ${data.wiki?.slice(0,400)||'no disponible'}
-WEB: ${webFindings||'no disponible'}
-Solo JSON sin backticks:
-{"portada_tag":"frase gancho 5-8 palabras sin el nombre","historia":"mín 3 párrafos, origen con contexto de época, formación, hitos, anécdotas. Máx 420 palabras.","estilo":"2 párrafos: cómo suena con metáforas concretas + propuesta lírica. Máx 200 palabras.","integrantes_intro":"oración cálida que humanice a los integrantes","discografia_intro":"2 oraciones que enmarquen la disco como viaje artístico","ultimo_contexto":"3 oraciones: qué representa, qué evolucionó, por qué escucharlo","cierre":"2 oraciones: invitación genuina + dato curioso que deje pensando"}`;
-  try{
-    const wr=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:wp}]})});
-    if(!wr.ok)throw new Error(wr.status);
-    const wd=await wr.json();
-    const raw=(wd.content||[]).map(c=>c.text||'').join('').replace(/```json|```/gi,'').trim();
-    const m=raw.match(/\{[\s\S]*\}/); if(!m)throw new Error('sin JSON');
-    return JSON.parse(m[0]);
-  }catch(e){console.warn('IA redacción:',e.message);return null;}
+// Convertir el JSON de investigación al formato interno que usa el resto del sistema
+function normalizeResearch(r, wikiImg) {
+  return {
+    name:      r.name || 'Banda',
+    country:   r.origin || null,
+    area:      r.origin || null,
+    beginArea: null,
+    lifeSpan:  { begin: r.founded ? r.founded + '-01-01' : null, ended: !r.active, end: r.dissolved ? r.dissolved + '-01-01' : null },
+    tags:      r.genres || [],
+    genres:    r.genres || [],
+    albums:    (r.albums || []).map(a => ({ title: a.title, year: String(a.year) })),
+    members:   [
+      ...(r.members_current || []).map(m => {
+        const [nm, inst=''] = m.split('—').map(s=>s.trim());
+        return { name: nm, instruments: inst ? [inst] : [], ended: false, begin: '', end: '' };
+      }),
+      ...(r.members_past || []).map(m => {
+        const [nm, rest=''] = m.split('—').map(s=>s.trim());
+        return { name: nm, instruments: rest ? [rest] : [], ended: true, begin: '', end: '' };
+      }),
+    ],
+    wiki:      r.historia || null,
+    wikiImage: wikiImg,
+    fromMB:    false,
+    // Campos enriquecidos directos de la investigación
+    _research: r,
+  };
 }
 
 // ── LOADING ─────────────────────────────────────────────────────
 function showLoading(){
-  document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Iniciando…</div><div class="loading-steps"><div class="loading-step" id="ls0">Consultando MusicBrainz</div><div class="loading-step" id="ls1">Investigando en la web</div><div class="loading-step" id="ls2">Redactando con IA</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
+  document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Iniciando…</div><div class="loading-steps"><div class="loading-step" id="ls0">Buscando en la web</div><div class="loading-step" id="ls1">Analizando fuentes</div><div class="loading-step" id="ls2">Redactando contenido</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
 }
 function updateLoading(step){
   for(let i=0;i<4;i++){const e=document.getElementById(`ls${i}`);if(!e)continue;e.className='loading-step'+(i<step?' done':i===step?' active':'');}
-  const m=document.getElementById('loadMain'),msgs=['Consultando MusicBrainz…','Investigando en la web…','Redactando con IA…','Componiendo carrusel…'];
+  const m=document.getElementById('loadMain'),msgs=['Buscando en la web…','Analizando fuentes…','Redactando contenido…','Componiendo carrusel…'];
   if(m&&msgs[step])m.textContent=msgs[step];
 }
 
@@ -569,37 +601,54 @@ async function generate(){
   const name=document.getElementById('bandName').value.trim();
   if(!name){alert('Ingresá el nombre de una banda');return;}
   showLoading(); document.getElementById('generateBtn').disabled=true;
-  document.getElementById('stageMeta').textContent=`Buscando "${name}"…`;
+  document.getElementById('stageMeta').textContent=`Investigando "${name}"…`;
   try{
     updateLoading(0);
-    const data=await searchBand(name);
-    S.bandData=data; S.bandImg=data.wikiImage||null;
-    if(!data.fromMB){
-      const w=document.getElementById('output').querySelector('.warn');
-      if(!w)document.getElementById('output').insertAdjacentHTML('afterbegin',`<div class="warn">⚠️ "${esc(name)}" no encontrado en MusicBrainz. La IA buscará la info en la web igualmente.</div>`);
-    }
-    const humanized=await humanizeWithClaude(data);
-    S.humanizedCache=humanized;
+    // Una sola llamada: Claude investiga y redacta todo
+    const research = await researchBand(name);
+    updateLoading(2);
+
+    // Buscar foto en Wikipedia en paralelo
+    const wikiImg = await fetchWikiImg(research.name || name);
+
+    // Normalizar al formato interno
+    const data = normalizeResearch(research, wikiImg);
+    S.bandData = data;
+    S.bandImg  = wikiImg;
+
+    // El humanizedCache ahora viene directamente del research
+    S.humanizedCache = {
+      portada_tag:       research.portada_tag,
+      historia:          research.historia,
+      estilo:            research.estilo,
+      integrantes_intro: research.integrantes_intro,
+      discografia_intro: research.discografia_intro,
+      ultimo_contexto:   research.ultimo_contexto,
+      cierre:            research.cierre,
+    };
+
     updateLoading(3);
     Object.keys(S.activeSections).forEach(k=>S.activeSections[k]=true);
-    buildSectionsPanel(data,humanized);
+    buildSectionsPanel(data, research);
     rebuildCarousel();
     document.getElementById('stageTitle').innerHTML=`${esc(data.name)}<span>.</span>`;
     saveRecent(data);
   }catch(err){
-    document.getElementById('output').innerHTML=`<div class="error"><strong>Error</strong>${esc(err.message)}</div>`;
+    document.getElementById('output').innerHTML=`<div class="error"><strong>Error</strong>${esc(err.message)}<br><small style="opacity:.6">Revisá la conexión o intentá de nuevo. La búsqueda puede tardar hasta 20 segundos.</small></div>`;
   }finally{document.getElementById('generateBtn').disabled=false;}
 }
 
 // ── SECCIONES ───────────────────────────────────────────────────
-function buildSectionsPanel(data,humanized){
+function buildSectionsPanel(data, research){
+  const memberCount = (research.members_current||[]).length + (research.members_past||[]).length;
+  const albumCount  = (research.albums||[]).length;
   const SECS=[
-    {key:'portada',label:'Portada',tag:'siempre',locked:true},
-    {key:'historia',label:'Historia',tag:humanized?.historia?'con IA + web':'básica'},
-    {key:'estilo',label:'Estilo musical',tag:humanized?.estilo?'con IA + web':'básico'},
-    {key:'integrantes',label:'Integrantes',tag:data.members.length>0?`${data.members.length} encontrados`:'sin datos'},
-    {key:'discografia',label:'Discografía',tag:data.albums.length>0?`${data.albums.length} álbumes`:'sin datos'},
-    {key:'ultimo',label:'Último lanzamiento',tag:data.albums.length>0?data.albums[data.albums.length-1].year:'sin datos'},
+    {key:'portada',    label:'Portada',           tag:'siempre', locked:true},
+    {key:'historia',   label:'Historia',           tag: research.historia     ? 'con IA + web' : 'básica'},
+    {key:'estilo',     label:'Estilo musical',     tag: research.estilo       ? 'con IA + web' : 'básico'},
+    {key:'integrantes',label:'Integrantes',        tag: memberCount > 0       ? `${memberCount} encontrados` : 'sin datos'},
+    {key:'discografia',label:'Discografía',        tag: albumCount  > 0       ? `${albumCount} álbumes`      : 'sin datos'},
+    {key:'ultimo',     label:'Último lanzamiento', tag: research.ultimo_album?.year || (albumCount > 0 ? data.albums[data.albums.length-1]?.year : 'sin datos')},
   ];
   const c=document.getElementById('sectionChecks');
   c.innerHTML=SECS.map(s=>`<label class="section-check-item ${S.activeSections[s.key]?'checked':''} ${s.locked?'disabled':''}" data-key="${s.key}"><input type="checkbox" ${S.activeSections[s.key]?'checked':''} ${s.locked?'disabled':''}><div class="check-box"></div><span class="check-label">${s.label}</span><span class="check-tag">${s.tag}</span></label>`).join('');
