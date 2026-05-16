@@ -219,7 +219,7 @@ footer{border-top:1px solid var(--border);padding:12px 16px;display:flex;align-i
     <h2>Banda</h2>
     <label for="bandName">Nombre</label>
     <input type="text" id="bandName" placeholder="Ej: blink-182" autocomplete="off">
-    <div class="help-text">Búsqueda web + IA · funciona con cualquier banda</div>
+    <div class="help-text">Wikipedia + Gemini AI · gratis · sin límites de uso</div>
   </section>
 
   <section>
@@ -359,7 +359,165 @@ const S = {
   activeSections:{portada:true,historia:true,estilo:true,integrantes:true,discografia:true,ultimo:true},
   modalIndex:0,
 };
-const RK  = 'bandcarousel_recent';
+const RK = 'bandcarousel_recent';
+
+// ── GEMINI API KEY ───────────────────────────────────────────────
+// Conseguila gratis en https://aistudio.google.com/app/apikey
+// Modelo: gemini-1.5-flash (capa gratuita: 15 req/min, 1500 req/día)
+const GEMINI_KEY   = 'PEGÁ_TU_API_KEY_AQUÍ';
+const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+async function gemini(prompt) {
+  const r = await fetch(GEMINI_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+    }),
+  });
+  if (!r.ok) throw new Error('Gemini ' + r.status);
+  const d = await r.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// ── WIKIPEDIA API ────────────────────────────────────────────────
+async function fetchWikiData(bandName) {
+  // Busca en ES primero, luego EN
+  for (const lang of ['es', 'en']) {
+    try {
+      // Paso 1: buscar el título exacto del artículo
+      const search = await fetch(
+        `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(bandName)}&srlimit=3&format=json&origin=*`
+      );
+      const sd = await search.json();
+      const hit = sd?.query?.search?.[0];
+      if (!hit) continue;
+
+      // Paso 2: traer el extracto + categorías del artículo encontrado
+      const page = await fetch(
+        `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(hit.title)}&prop=extracts|categories&exintro=true&explaintext=true&exsectionformat=plain&cllimit=20&format=json&origin=*`
+      );
+      const pd = await page.json();
+      const article = Object.values(pd?.query?.pages || {})[0];
+      if (article?.extract?.length > 100) {
+        return {
+          title:      article.title,
+          extract:    article.extract,
+          categories: (article.categories || []).map(c => c.title.replace('Categoría:','').replace('Category:','')),
+          lang,
+        };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function fetchWikiImg(title) {
+  for (const lang of ['en', 'es']) {
+    try {
+      const r = await fetch(
+        `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`
+      );
+      if (!r.ok) continue;
+      const d = await r.json();
+      const p = Object.values(d?.query?.pages || {})[0];
+      if (p?.thumbnail?.source) return await loadImg(p.thumbnail.source);
+    } catch {}
+  }
+  return null;
+}
+
+function loadImg(url) {
+  return new Promise(res => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => res(i); i.onerror = () => res(null); i.src = url;
+    setTimeout(() => res(null), 6000);
+  });
+}
+
+// ── INVESTIGACIÓN: Wikipedia → Gemini ───────────────────────────
+async function researchBand(name) {
+  // Paso 1: datos de Wikipedia
+  updateLoading(1);
+  const wiki = await fetchWikiData(name);
+  const wikiText = wiki?.extract || '';
+  const wikiTitle = wiki?.title || name;
+
+  // Paso 2: Gemini genera el JSON completo
+  updateLoading(2);
+  const prompt = `Sos un community manager musical que escribe carruseles de Instagram.
+Tono: cálido, directo, apasionado. Sin frases corporativas. Sin emojis. Sin hashtags. Sin markdown.
+Español rioplatense cuando corresponda.
+
+Banda: "${name}"
+Info de Wikipedia:
+${wikiText ? wikiText.slice(0, 3000) : 'No disponible — usá tu conocimiento general.'}
+
+Basándote en esa info (y en lo que sabés de la banda), generá ÚNICAMENTE este JSON.
+No agregues texto antes ni después. No uses backticks. Solo el JSON puro:
+
+{
+  "name": "nombre oficial",
+  "origin": "ciudad, país",
+  "founded": "año",
+  "dissolved": null,
+  "active": true,
+  "genres": ["género 1", "género 2"],
+  "members_current": ["Nombre — instrumento"],
+  "members_past": ["Nombre — instrumento (año inicio-año fin)"],
+  "portada_tag": "frase gancho de 5-7 palabras sin el nombre de la banda",
+  "historia": "2-3 párrafos narrativos. Origen, contexto de época, formación, hitos clave de su carrera, evolución. Con datos concretos. Mínimo 280 palabras.",
+  "estilo": "1-2 párrafos. Cómo suena, qué transmite, referencias a canciones o discos concretos. Mínimo 120 palabras.",
+  "integrantes_intro": "oración introductoria cálida antes de listar integrantes",
+  "albums": [{"year":"año","title":"título"}],
+  "discografia_intro": "1-2 oraciones que enmarquen el recorrido discográfico",
+  "ultimo_album": {"year":"año","title":"título"},
+  "ultimo_contexto": "2-3 oraciones sobre el último lanzamiento: qué representa, qué tiene de especial.",
+  "cierre": "1-2 oraciones de cierre: invitación genuina a escucharlos."
+}`;
+
+  const raw = await gemini(prompt);
+  const match = raw.replace(/```json|```/gi, '').trim().match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Gemini no devolvió un JSON válido. Revisá la API key.');
+  const parsed = JSON.parse(match[0]);
+
+  // Si Gemini no encontró imagen, intentar con el título de Wikipedia
+  parsed._wikiTitle = wikiTitle;
+  return parsed;
+}
+
+// Normalizar al formato interno
+function normalizeResearch(r, wikiImg) {
+  return {
+    name:      r.name || 'Banda',
+    country:   r.origin || null,
+    area:      r.origin || null,
+    beginArea: null,
+    lifeSpan:  {
+      begin:  r.founded ? r.founded + '-01-01' : null,
+      ended:  !r.active,
+      end:    r.dissolved ? r.dissolved + '-01-01' : null,
+    },
+    tags:    r.genres || [],
+    genres:  r.genres || [],
+    albums:  (r.albums || []).map(a => ({ title: a.title, year: String(a.year) })),
+    members: [
+      ...(r.members_current || []).map(m => {
+        const [nm, inst = ''] = m.split('—').map(s => s.trim());
+        return { name: nm, instruments: inst ? [inst] : [], ended: false, begin: '', end: '' };
+      }),
+      ...(r.members_past || []).map(m => {
+        const [nm, rest = ''] = m.split('—').map(s => s.trim());
+        return { name: nm, instruments: rest ? [rest] : [], ended: true, begin: '', end: '' };
+      }),
+    ],
+    wiki:      r.historia || null,
+    wikiImage: wikiImg,
+    fromMB:    false,
+    _research: r,
+  };
+}
 
 // ── UI BINDINGS ─────────────────────────────────────────────────
 function seg(id,key,cb){
@@ -458,134 +616,6 @@ function resetAll(){
 }
 
 // ── IMAGEN WIKIPEDIA (sigue siendo útil para la foto) ────────────
-async function fetchWikiImg(title){
-  for(const lang of['en','es']){
-    try{
-      const r=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`);
-      if(!r.ok)continue; const d=await r.json();
-      const p=Object.values(d?.query?.pages||{})[0];
-      if(p?.thumbnail?.source)return await loadImg(p.thumbnail.source);
-    }catch{}
-  } return null;
-}
-function loadImg(url){
-  return new Promise(res=>{
-    const i=new Image(); i.crossOrigin='anonymous';
-    i.onload=()=>res(i); i.onerror=()=>res(null); i.src=url;
-    setTimeout(()=>res(null),6000);
-  });
-}
-
-// ── INVESTIGACIÓN COMPLETA CON CLAUDE + WEB_SEARCH ───────────────
-// Una sola llamada multi-turno: Claude busca todo lo que necesita
-// y devuelve el JSON completo listo para usar. Sin MusicBrainz.
-async function researchBand(name){
-  updateLoading(1);
-
-  const systemPrompt = `Sos un investigador y community manager musical experto. Tu tarea es investigar una banda usando web_search y producir un JSON completo y preciso con toda la información necesaria para armar un carrusel de Instagram de calidad profesional.
-
-INSTRUCCIONES CRÍTICAS:
-- Hacé MÚLTIPLES búsquedas para triangular la información (historia, integrantes, discografía, último lanzamiento, estilo, curiosidades)
-- Buscá en español SI la banda es hispanohablante, en inglés si es internacional
-- Usá fuentes como Wikipedia, AllMusic, Genius, Pitchfork, La Nación, Rolling Stone, sitios oficiales
-- La info tiene que ser VERAZ y ESPECÍFICA — fechas, nombres, lugares reales
-- El tono de los textos: cálido, humano, apasionado. Sin frases corporativas. Sin emojis. Sin hashtags.
-- Español rioplatense cuando corresponda
-- Cuando termines de investigar, respondé SOLO con el JSON final, sin explicaciones, sin backticks`;
-
-  const userPrompt = `Investigá exhaustivamente la banda/artista: "${name}"
-
-Hacé todas las búsquedas que necesites y luego devolvé ÚNICAMENTE este JSON (sin backticks, sin texto extra):
-
-{
-  "name": "nombre oficial de la banda",
-  "origin": "ciudad y país de origen",
-  "founded": "año de formación",
-  "dissolved": "año de disolución o null si siguen activos",
-  "active": true/false,
-  "genres": ["género 1", "género 2"],
-  "members_current": ["nombre — instrumento", ...],
-  "members_past": ["nombre — instrumento (años)", ...],
-  "portada_tag": "frase gancho 5-8 palabras que genere curiosidad, SIN el nombre de la banda",
-  "historia": "MÍNIMO 4 párrafos bien desarrollados. Contexto de época y escena musical donde surgieron. Cómo se formaron, quiénes son. Momentos clave de su carrera: giras, premios, controversias, hitos. Evolución artística. Anécdotas concretas si las encontraste. Que se lea como un artículo de Rolling Stone, no como Wikipedia. Mínimo 450 palabras.",
-  "estilo": "2 párrafos sustanciales. Primero: cómo suena su música describiendo con metáforas y referencias concretas a canciones o álbumes. Segundo: qué exploran líricamente, cuál es su propuesta conceptual o emocional. Mínimo 200 palabras.",
-  "integrantes_intro": "oración cálida y específica que presente a los integrantes antes de listarlos",
-  "albums": [{"year": "año", "title": "título"}, ...],
-  "discografia_intro": "2-3 oraciones que enmarquen la discografía como un viaje artístico con momentos concretos",
-  "ultimo_album": {"year": "año", "title": "título"},
-  "ultimo_contexto": "3-4 oraciones sobre el último lanzamiento: qué representa para la banda, qué tiene de especial, por qué vale la pena escucharlo. Con convicción y detalle.",
-  "cierre": "2 oraciones de cierre: una que invite genuinamente a escucharlos, otra con un dato curioso o reflexión que deje pensando al lector"
-}`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: systemPrompt,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-
-    if (!res.ok) throw new Error('API ' + res.status);
-    const data = await res.json();
-
-    // Extraer el texto final — Claude puede hacer varias búsquedas antes de responder
-    // El JSON final estará en el último bloque de texto
-    const textBlocks = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text);
-
-    // Tomar el último bloque de texto que contenga un JSON válido
-    let parsed = null;
-    for (let i = textBlocks.length - 1; i >= 0; i--) {
-      const match = textBlocks[i].replace(/```json|```/gi, '').trim().match(/\{[\s\S]*\}/);
-      if (match) {
-        try { parsed = JSON.parse(match[0]); break; }
-        catch {}
-      }
-    }
-
-    if (!parsed) throw new Error('No se pudo parsear la respuesta de la IA');
-    return parsed;
-
-  } catch(e) {
-    throw new Error(`Error investigando la banda: ${e.message}`);
-  }
-}
-
-// Convertir el JSON de investigación al formato interno que usa el resto del sistema
-function normalizeResearch(r, wikiImg) {
-  return {
-    name:      r.name || 'Banda',
-    country:   r.origin || null,
-    area:      r.origin || null,
-    beginArea: null,
-    lifeSpan:  { begin: r.founded ? r.founded + '-01-01' : null, ended: !r.active, end: r.dissolved ? r.dissolved + '-01-01' : null },
-    tags:      r.genres || [],
-    genres:    r.genres || [],
-    albums:    (r.albums || []).map(a => ({ title: a.title, year: String(a.year) })),
-    members:   [
-      ...(r.members_current || []).map(m => {
-        const [nm, inst=''] = m.split('—').map(s=>s.trim());
-        return { name: nm, instruments: inst ? [inst] : [], ended: false, begin: '', end: '' };
-      }),
-      ...(r.members_past || []).map(m => {
-        const [nm, rest=''] = m.split('—').map(s=>s.trim());
-        return { name: nm, instruments: rest ? [rest] : [], ended: true, begin: '', end: '' };
-      }),
-    ],
-    wiki:      r.historia || null,
-    wikiImage: wikiImg,
-    fromMB:    false,
-    // Campos enriquecidos directos de la investigación
-    _research: r,
-  };
-}
-
 // ── LOADING ─────────────────────────────────────────────────────
 function showLoading(){
   document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Iniciando…</div><div class="loading-steps"><div class="loading-step" id="ls0">Buscando en la web</div><div class="loading-step" id="ls1">Analizando fuentes</div><div class="loading-step" id="ls2">Redactando contenido</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
@@ -598,25 +628,31 @@ function updateLoading(step){
 
 // ── GENERATE ────────────────────────────────────────────────────
 async function generate(){
-  const name=document.getElementById('bandName').value.trim();
-  if(!name){alert('Ingresá el nombre de una banda');return;}
-  showLoading(); document.getElementById('generateBtn').disabled=true;
-  document.getElementById('stageMeta').textContent=`Investigando "${name}"…`;
-  try{
+  const name = document.getElementById('bandName').value.trim();
+  if (!name) { alert('Ingresá el nombre de una banda'); return; }
+
+  // Verificar que la key esté configurada
+  if (GEMINI_KEY === 'PEGÁ_TU_API_KEY_AQUÍ') {
+    document.getElementById('output').innerHTML = `<div class="error"><strong>Falta la API Key</strong>Abrí el archivo HTML, buscá la línea <code>const GEMINI_KEY</code> y reemplazá <em>PEGÁ_TU_API_KEY_AQUÍ</em> con tu key de Google AI Studio.<br><br>Conseguila gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent-2)">aistudio.google.com</a></div>`;
+    return;
+  }
+
+  showLoading();
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('stageMeta').textContent = `Investigando "${name}"…`;
+
+  try {
     updateLoading(0);
-    // Una sola llamada: Claude investiga y redacta todo
     const research = await researchBand(name);
     updateLoading(2);
 
-    // Buscar foto en Wikipedia en paralelo
-    const wikiImg = await fetchWikiImg(research.name || name);
+    // Foto: intentar con título de Wikipedia o nombre original
+    const wikiImg = await fetchWikiImg(research._wikiTitle || research.name || name);
 
-    // Normalizar al formato interno
     const data = normalizeResearch(research, wikiImg);
     S.bandData = data;
     S.bandImg  = wikiImg;
 
-    // El humanizedCache ahora viene directamente del research
     S.humanizedCache = {
       portada_tag:       research.portada_tag,
       historia:          research.historia,
@@ -628,16 +664,18 @@ async function generate(){
     };
 
     updateLoading(3);
-    Object.keys(S.activeSections).forEach(k=>S.activeSections[k]=true);
+    Object.keys(S.activeSections).forEach(k => S.activeSections[k] = true);
     buildSectionsPanel(data, research);
     rebuildCarousel();
-    document.getElementById('stageTitle').innerHTML=`${esc(data.name)}<span>.</span>`;
+    document.getElementById('stageTitle').innerHTML = `${esc(data.name)}<span>.</span>`;
     saveRecent(data);
-  }catch(err){
-    document.getElementById('output').innerHTML=`<div class="error"><strong>Error</strong>${esc(err.message)}<br><small style="opacity:.6">Revisá la conexión o intentá de nuevo. La búsqueda puede tardar hasta 20 segundos.</small></div>`;
-  }finally{document.getElementById('generateBtn').disabled=false;}
-}
 
+  } catch(err) {
+    document.getElementById('output').innerHTML = `<div class="error"><strong>Error</strong>${esc(err.message)}<br><small style="opacity:.6">Revisá la API key o intentá de nuevo.</small></div>`;
+  } finally {
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
 // ── SECCIONES ───────────────────────────────────────────────────
 function buildSectionsPanel(data, research){
   const memberCount = (research.members_current||[]).length + (research.members_past||[]).length;
@@ -739,12 +777,15 @@ function renderTextSlides(){
 }
 
 // ── REGENERAR SECCIÓN (#9) ───────────────────────────────────────
-async function regenSection(key,title){
-  const d=S.bandData;
-  const p=`Community manager musical. Reescribí SOLO "${title}" para el carrusel de ${d.name}. Tono auténtico, sin corporativo, sin emojis. Sin el título. Máx 250 palabras. Usá: géneros=${[...d.genres,...d.tags].slice(0,5).join(', ')}, álbumes=${d.albums.slice(0,8).map(a=>a.year+' '+a.title).join(', ')}, wiki=${d.wiki?.slice(0,300)||'no disponible'}.`;
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:p}]})});
-  if(!r.ok)throw new Error(r.status);
-  const d2=await r.json(); return(d2.content||[]).map(c=>c.text||'').join('').trim();
+async function regenSection(key, title) {
+  const d = S.bandData;
+  const prompt = `Community manager musical. Reescribí SOLO la sección "${title}" para el carrusel de Instagram de ${d.name}.
+Tono auténtico, cálido, sin frases corporativas. Sin emojis. Sin el título. Máximo 250 palabras.
+Géneros: ${[...d.genres,...d.tags].slice(0,5).join(', ')}.
+Álbumes: ${d.albums.slice(0,8).map(a=>a.year+' '+a.title).join(', ')}.
+Info: ${d.wiki?.slice(0,400)||'no disponible'}.
+Devolvé solo el texto, sin explicaciones.`;
+  return await gemini(prompt);
 }
 
 // ── RENDER IMAGEN ─────────────────────────────────────────────────
