@@ -219,7 +219,7 @@ footer{border-top:1px solid var(--border);padding:12px 16px;display:flex;align-i
     <h2>Banda</h2>
     <label for="bandName">Nombre</label>
     <input type="text" id="bandName" placeholder="Ej: blink-182" autocomplete="off">
-    <div class="help-text">Wikipedia + Gemini AI · gratis · sin límites de uso</div>
+    <div class="help-text">Wikipedia + Wikidata · 100% gratis · sin API key</div>
   </section>
 
   <section>
@@ -361,64 +361,130 @@ const S = {
 };
 const RK = 'bandcarousel_recent';
 
-// ── GEMINI API KEY ───────────────────────────────────────────────
-// Conseguila gratis en https://aistudio.google.com/app/apikey
-// Modelo: gemini-1.5-flash (capa gratuita: 15 req/min, 1500 req/día)
-const GEMINI_KEY   = 'AIzaSyAe9_Wvr2K4n54aR4VV9LGVSD1ZlKltcC8';
-const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+// ── WIKIPEDIA + WIKIDATA (100% gratis, sin API key) ─────────────
 
-async function gemini(prompt) {
-  const r = await fetch(GEMINI_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-    }),
-  });
-  if (!r.ok) throw new Error('Gemini ' + r.status);
-  const d = await r.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-}
-
-// ── WIKIPEDIA API ────────────────────────────────────────────────
-async function fetchWikiData(bandName) {
-  // Busca en ES primero, luego EN
+// Busca el artículo y trae extracto completo por secciones
+async function fetchWikiData(name) {
   for (const lang of ['es', 'en']) {
     try {
-      // Paso 1: buscar el título exacto del artículo
-      const search = await fetch(
-        `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(bandName)}&srlimit=3&format=json&origin=*`
-      );
-      const sd = await search.json();
-      const hit = sd?.query?.search?.[0];
+      const s = await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(name)}&srlimit=5&format=json&origin=*`);
+      const sd = await s.json();
+      // Preferir resultado que contenga el nombre exacto
+      const hits = sd?.query?.search || [];
+      const hit = hits.find(h => h.title.toLowerCase().includes(name.toLowerCase())) || hits[0];
       if (!hit) continue;
 
-      // Paso 2: traer el extracto + categorías del artículo encontrado
-      const page = await fetch(
-        `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(hit.title)}&prop=extracts|categories&exintro=true&explaintext=true&exsectionformat=plain&cllimit=20&format=json&origin=*`
-      );
-      const pd = await page.json();
+      // Traer extracto completo (no solo intro) + pageprops para Wikidata ID
+      const p = await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(hit.title)}&prop=extracts|pageprops|revisions&explaintext=true&exsectionformat=plain&rvprop=content&rvslots=main&format=json&origin=*`);
+      const pd = await p.json();
       const article = Object.values(pd?.query?.pages || {})[0];
-      if (article?.extract?.length > 100) {
-        return {
-          title:      article.title,
-          extract:    article.extract,
-          categories: (article.categories || []).map(c => c.title.replace('Categoría:','').replace('Category:','')),
-          lang,
-        };
-      }
+      if (!article || article.missing) continue;
+
+      const extract = article.extract || '';
+      if (extract.length < 80) continue;
+
+      return {
+        title:    article.title,
+        extract,
+        wikidataId: article.pageprops?.wikibase_item || null,
+        lang,
+      };
     } catch {}
   }
   return null;
 }
 
+// Wikidata: trae miembros, fecha de formación, género, origen, discografía
+async function fetchWikidata(qid) {
+  if (!qid) return null;
+  try {
+    const r = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const entity = d.entities?.[qid];
+    if (!entity) return null;
+    const claims = entity.claims || {};
+
+    const getVal = (prop) => {
+      const c = claims[prop];
+      if (!c?.length) return null;
+      return c[0]?.mainsnak?.datavalue?.value;
+    };
+    const getVals = (prop) => {
+      const c = claims[prop];
+      if (!c?.length) return [];
+      return c.map(x => x?.mainsnak?.datavalue?.value).filter(Boolean);
+    };
+    const getLabel = async (qid2) => {
+      if (!qid2) return null;
+      try {
+        const r2 = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid2}&props=labels&languages=es|en&format=json&origin=*`);
+        const d2 = await r2.json();
+        const e2 = d2.entities?.[qid2];
+        return e2?.labels?.es?.value || e2?.labels?.en?.value || null;
+      } catch { return null; }
+    };
+
+    // Miembros actuales (P527 = has part) y anteriores (P3373 = sibling)
+    // Más confiable: P527 (miembros) con qualificadores de tiempo
+    const memberIds = getVals('P527').map(v => v?.id).filter(Boolean);
+
+    // Géneros (P136)
+    const genreIds = getVals('P136').map(v => v?.id).filter(Boolean);
+
+    // País de origen (P495 o P27)
+    const countryId = getVal('P495')?.id || getVal('P27')?.id;
+
+    // Fecha de fundación (P571)
+    const founded = getVal('P571')?.time?.slice(1, 5) || null;
+
+    // Fecha de disolución (P576)
+    const dissolved = getVal('P576')?.time?.slice(1, 5) || null;
+
+    // Discografía (P358 = discography)
+    const discoIds = getVals('P358').map(v => v?.id).filter(Boolean).slice(0, 30);
+
+    // Resolver labels en paralelo (limitado para no hacer demasiadas requests)
+    const [memberLabels, genreLabels, countryLabel] = await Promise.all([
+      Promise.all(memberIds.slice(0, 12).map(getLabel)),
+      Promise.all(genreIds.slice(0, 6).map(getLabel)),
+      getLabel(countryId),
+    ]);
+
+    return {
+      members:   memberLabels.filter(Boolean),
+      genres:    genreLabels.filter(Boolean),
+      country:   countryLabel,
+      founded,
+      dissolved,
+      discoIds,
+    };
+  } catch { return null; }
+}
+
+// Trae discografía desde Wikidata entity IDs de álbumes
+async function fetchAlbums(ids) {
+  if (!ids?.length) return [];
+  try {
+    // Hasta 30 álbumes en una sola request
+    const chunk = ids.slice(0, 30).join('|');
+    const r = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${chunk}&props=labels|claims&languages=es|en&format=json&origin=*`);
+    const d = await r.json();
+    const albums = [];
+    for (const [id, ent] of Object.entries(d.entities || {})) {
+      const label = ent.labels?.es?.value || ent.labels?.en?.value;
+      const yearRaw = ent.claims?.P577?.[0]?.mainsnak?.datavalue?.value?.time;
+      const year = yearRaw ? yearRaw.slice(1, 5) : null;
+      if (label && year) albums.push({ title: label, year });
+    }
+    return albums.sort((a, b) => a.year.localeCompare(b.year));
+  } catch { return []; }
+}
+
 async function fetchWikiImg(title) {
   for (const lang of ['en', 'es']) {
     try {
-      const r = await fetch(
-        `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`
-      );
+      const r = await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`);
       if (!r.ok) continue;
       const d = await r.json();
       const p = Object.values(d?.query?.pages || {})[0];
@@ -436,55 +502,144 @@ function loadImg(url) {
   });
 }
 
-// ── INVESTIGACIÓN: Wikipedia → Gemini ───────────────────────────
+// ── PARSEAR EXTRACTO DE WIKIPEDIA ────────────────────────────────
+// Extrae datos estructurados del texto plano del artículo
+function parseWikiExtract(extract, name) {
+  const lines = extract.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Intro: primeros párrafos antes de la primera sección
+  const introLines = [];
+  for (const l of lines) {
+    if (l.match(/^=+\s/) ) break; // llegamos a una sección
+    introLines.push(l);
+  }
+  const intro = introLines.join('\n\n');
+
+  // Buscar sección de historia
+  let historia = '';
+  let inHist = false;
+  for (const l of lines) {
+    if (l.match(/^=+\s*(historia|history|trayectoria|biography|biografía)/i)) { inHist = true; continue; }
+    if (inHist && l.match(/^=+\s/)) break;
+    if (inHist) historia += l + '\n\n';
+  }
+
+  // Buscar sección de discografía (para sacar álbumes si Wikidata falla)
+  const albumPattern = /(\d{4})[^\n]*?[«»""]([^«»""]+)[«»""]/g;
+  const albumsFromText = [];
+  let m;
+  const discoText = extract.slice(extract.toLowerCase().indexOf('discograf') || 0);
+  while ((m = albumPattern.exec(discoText)) !== null) {
+    albumsFromText.push({ year: m[1], title: m[2].trim() });
+  }
+
+  return { intro, historia: historia.trim() || intro, albumsFromText };
+}
+
+// ── COMPOSICIÓN DE TEXTOS SIN IA ─────────────────────────────────
+function buildTexts(name, wikiData, wikiInfo, albums) {
+  const { intro, historia } = wikiInfo;
+  const origin  = wikiData?.country || '';
+  const founded = wikiData?.founded || '';
+  const genres  = (wikiData?.genres || []).join(', ') || '';
+  const latest  = albums.length ? albums[albums.length - 1] : null;
+
+  // Portada tag — frase basada en datos reales
+  const portada_tag = founded
+    ? `${founded ? 'Desde ' + founded : ''} sonando sin parar`
+    : 'Una banda que vale la pena conocer';
+
+  // Historia — usar el extracto de Wikipedia directamente
+  // Lo dividimos en párrafos limpios y tomamos los más ricos
+  const histParas = historia
+    .split(/\n\n+/)
+    .map(p => p.trim())
+    .filter(p => p.length > 80)
+    .slice(0, 4)
+    .join('\n\n');
+
+  // Si Wikipedia tiene poco, usar la intro
+  const historiaFinal = histParas.length > 200 ? histParas
+    : intro.split(/\n\n+/).filter(p => p.length > 60).slice(0, 3).join('\n\n');
+
+  // Estilo — construir desde la intro y géneros
+  const genreDesc = genres
+    ? `Su sonido transita por el ${genres}.`
+    : '';
+  const estilo = [
+    intro.split(/\n\n+/).find(p => p.toLowerCase().includes('sonido') || p.toLowerCase().includes('estilo') || p.toLowerCase().includes('música') || p.toLowerCase().includes('rock') || p.toLowerCase().includes('pop')) || intro.split(/\n\n+/)[1] || '',
+    genreDesc,
+  ].filter(Boolean).join(' ');
+
+  // Discografía intro
+  const discografia_intro = albums.length
+    ? `${name} tiene ${albums.length} álbum${albums.length > 1 ? 'es' : ''} en su carrera${founded ? ', desde ' + founded : ''}. Cada uno marcó una etapa distinta de su sonido.`
+    : 'Su discografía refleja años de trabajo y evolución constante.';
+
+  // Último lanzamiento
+  const ultimo_contexto = latest
+    ? `"${latest.title}" (${latest.year}) es su lanzamiento más reciente. Representa el estado actual de la banda y su propuesta más madura.`
+    : 'Su último material continúa mostrando la evolución del grupo.';
+
+  const cierre = `Si todavía no los escuchaste, este es el mejor momento para empezar.${genres ? ' El ' + genres.split(',')[0] + ' nunca sonó mejor.' : ''}`;
+
+  const integrantes_intro = wikiData?.members?.length
+    ? `Detrás del sonido hay personas reales con historias propias:`
+    : 'La banda está formada por:';
+
+  return {
+    portada_tag,
+    historia:          historiaFinal,
+    estilo:            estilo || historiaFinal.split('\n\n')[0] || '',
+    integrantes_intro,
+    discografia_intro,
+    ultimo_contexto,
+    cierre,
+  };
+}
+
+// ── RESEARCH: orquesta todo ──────────────────────────────────────
 async function researchBand(name) {
-  // Paso 1: datos de Wikipedia
-  updateLoading(1);
+  updateLoading(0);
   const wiki = await fetchWikiData(name);
-  const wikiText = wiki?.extract || '';
-  const wikiTitle = wiki?.title || name;
+  if (!wiki) throw new Error(`No se encontró "${name}" en Wikipedia. Probá con el nombre en inglés o revisá la ortografía.`);
 
-  // Paso 2: Gemini genera el JSON completo
+  updateLoading(1);
+  // Wikidata y texto en paralelo
+  const [wikidata, wikiImg] = await Promise.all([
+    fetchWikidata(wiki.wikidataId),
+    fetchWikiImg(wiki.title),
+  ]);
+
   updateLoading(2);
-  const prompt = `Sos un community manager musical que escribe carruseles de Instagram.
-Tono: cálido, directo, apasionado. Sin frases corporativas. Sin emojis. Sin hashtags. Sin markdown.
-Español rioplatense cuando corresponda.
+  // Álbumes desde Wikidata; fallback al texto
+  let albums = [];
+  if (wikidata?.discoIds?.length) {
+    albums = await fetchAlbums(wikidata.discoIds);
+  }
+  const wikiInfo = parseWikiExtract(wiki.extract, name);
+  if (!albums.length) albums = wikiInfo.albumsFromText;
 
-Banda: "${name}"
-Info de Wikipedia:
-${wikiText ? wikiText.slice(0, 3000) : 'No disponible — usá tu conocimiento general.'}
+  updateLoading(3);
+  const genres  = wikidata?.genres?.length ? wikidata.genres : [];
+  const members = wikidata?.members || [];
+  const texts   = buildTexts(name, wikidata, wikiInfo, albums);
 
-Basándote en esa info (y en lo que sabés de la banda), generá ÚNICAMENTE este JSON.
-No agregues texto antes ni después. No uses backticks. Solo el JSON puro:
-
-{
-  "name": "nombre oficial",
-  "origin": "ciudad, país",
-  "founded": "año",
-  "dissolved": null,
-  "active": true,
-  "genres": ["género 1", "género 2"],
-  "members_current": ["Nombre — instrumento"],
-  "members_past": ["Nombre — instrumento (año inicio-año fin)"],
-  "portada_tag": "frase gancho de 5-7 palabras sin el nombre de la banda",
-  "historia": "2-3 párrafos narrativos. Origen, contexto de época, formación, hitos clave de su carrera, evolución. Con datos concretos. Mínimo 280 palabras.",
-  "estilo": "1-2 párrafos. Cómo suena, qué transmite, referencias a canciones o discos concretos. Mínimo 120 palabras.",
-  "integrantes_intro": "oración introductoria cálida antes de listar integrantes",
-  "albums": [{"year":"año","title":"título"}],
-  "discografia_intro": "1-2 oraciones que enmarquen el recorrido discográfico",
-  "ultimo_album": {"year":"año","title":"título"},
-  "ultimo_contexto": "2-3 oraciones sobre el último lanzamiento: qué representa, qué tiene de especial.",
-  "cierre": "1-2 oraciones de cierre: invitación genuina a escucharlos."
-}`;
-
-  const raw = await gemini(prompt);
-  const match = raw.replace(/```json|```/gi, '').trim().match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Gemini no devolvió un JSON válido. Revisá la API key.');
-  const parsed = JSON.parse(match[0]);
-
-  // Si Gemini no encontró imagen, intentar con el título de Wikipedia
-  parsed._wikiTitle = wikiTitle;
-  return parsed;
+  return {
+    name:      wiki.title,
+    origin:    wikidata?.country || '',
+    founded:   wikidata?.founded || '',
+    dissolved: wikidata?.dissolved || null,
+    active:    !wikidata?.dissolved,
+    genres,
+    members_current: members.slice(0, 8).map(m => m + ' —'),
+    members_past:    [],
+    albums:    albums.slice(0, 40),
+    ultimo_album: albums.length ? albums[albums.length - 1] : null,
+    _wikiTitle: wiki.title,
+    _wikiImg:   wikiImg,
+    ...texts,
+  };
 }
 
 // Normalizar al formato interno
@@ -502,16 +657,10 @@ function normalizeResearch(r, wikiImg) {
     tags:    r.genres || [],
     genres:  r.genres || [],
     albums:  (r.albums || []).map(a => ({ title: a.title, year: String(a.year) })),
-    members: [
-      ...(r.members_current || []).map(m => {
-        const [nm, inst = ''] = m.split('—').map(s => s.trim());
-        return { name: nm, instruments: inst ? [inst] : [], ended: false, begin: '', end: '' };
-      }),
-      ...(r.members_past || []).map(m => {
-        const [nm, rest = ''] = m.split('—').map(s => s.trim());
-        return { name: nm, instruments: rest ? [rest] : [], ended: true, begin: '', end: '' };
-      }),
-    ],
+    members: (r.members_current || []).map(m => {
+      const nm = m.replace(/\s*—\s*$/, '').trim();
+      return { name: nm, instruments: [], ended: false, begin: '', end: '' };
+    }),
     wiki:      r.historia || null,
     wikiImage: wikiImg,
     fromMB:    false,
@@ -618,7 +767,7 @@ function resetAll(){
 // ── IMAGEN WIKIPEDIA (sigue siendo útil para la foto) ────────────
 // ── LOADING ─────────────────────────────────────────────────────
 function showLoading(){
-  document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Iniciando…</div><div class="loading-steps"><div class="loading-step" id="ls0">Buscando en la web</div><div class="loading-step" id="ls1">Analizando fuentes</div><div class="loading-step" id="ls2">Redactando contenido</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
+  document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Buscando en Wikipedia…</div><div class="loading-steps"><div class="loading-step" id="ls0">Artículo de Wikipedia</div><div class="loading-step" id="ls1">Datos de Wikidata</div><div class="loading-step" id="ls2">Discografía y álbumes</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
 }
 function updateLoading(step){
   for(let i=0;i<4;i++){const e=document.getElementById(`ls${i}`);if(!e)continue;e.className='loading-step'+(i<step?' done':i===step?' active':'');}
@@ -631,23 +780,13 @@ async function generate(){
   const name = document.getElementById('bandName').value.trim();
   if (!name) { alert('Ingresá el nombre de una banda'); return; }
 
-  // Verificar que la key esté configurada
-  if (GEMINI_KEY === 'PEGÁ_TU_API_KEY_AQUÍ') {
-    document.getElementById('output').innerHTML = `<div class="error"><strong>Falta la API Key</strong>Abrí el archivo HTML, buscá la línea <code>const GEMINI_KEY</code> y reemplazá <em>PEGÁ_TU_API_KEY_AQUÍ</em> con tu key de Google AI Studio.<br><br>Conseguila gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent-2)">aistudio.google.com</a></div>`;
-    return;
-  }
-
   showLoading();
   document.getElementById('generateBtn').disabled = true;
-  document.getElementById('stageMeta').textContent = `Investigando "${name}"…`;
+  document.getElementById('stageMeta').textContent = `Buscando "${name}"…`;
 
   try {
-    updateLoading(0);
     const research = await researchBand(name);
-    updateLoading(2);
-
-    // Foto: intentar con título de Wikipedia o nombre original
-    const wikiImg = await fetchWikiImg(research._wikiTitle || research.name || name);
+    const wikiImg  = research._wikiImg;
 
     const data = normalizeResearch(research, wikiImg);
     S.bandData = data;
@@ -663,7 +802,6 @@ async function generate(){
       cierre:            research.cierre,
     };
 
-    updateLoading(3);
     Object.keys(S.activeSections).forEach(k => S.activeSections[k] = true);
     buildSectionsPanel(data, research);
     rebuildCarousel();
@@ -671,7 +809,7 @@ async function generate(){
     saveRecent(data);
 
   } catch(err) {
-    document.getElementById('output').innerHTML = `<div class="error"><strong>Error</strong>${esc(err.message)}<br><small style="opacity:.6">Revisá la API key o intentá de nuevo.</small></div>`;
+    document.getElementById('output').innerHTML = `<div class="error"><strong>Error</strong>${esc(err.message)}</div>`;
   } finally {
     document.getElementById('generateBtn').disabled = false;
   }
@@ -682,8 +820,8 @@ function buildSectionsPanel(data, research){
   const albumCount  = (research.albums||[]).length;
   const SECS=[
     {key:'portada',    label:'Portada',           tag:'siempre', locked:true},
-    {key:'historia',   label:'Historia',           tag: research.historia     ? 'con IA + web' : 'básica'},
-    {key:'estilo',     label:'Estilo musical',     tag: research.estilo       ? 'con IA + web' : 'básico'},
+    {key:'historia',   label:'Historia',           tag: research.historia?.length > 100 ? 'Wikipedia' : 'básica'},
+    {key:'estilo',     label:'Estilo musical',     tag: research.estilo?.length   > 50  ? 'Wikipedia' : 'básico'},
     {key:'integrantes',label:'Integrantes',        tag: memberCount > 0       ? `${memberCount} encontrados` : 'sin datos'},
     {key:'discografia',label:'Discografía',        tag: albumCount  > 0       ? `${albumCount} álbumes`      : 'sin datos'},
     {key:'ultimo',     label:'Último lanzamiento', tag: research.ultimo_album?.year || (albumCount > 0 ? data.albums[data.albums.length-1]?.year : 'sin datos')},
@@ -779,13 +917,12 @@ function renderTextSlides(){
 // ── REGENERAR SECCIÓN (#9) ───────────────────────────────────────
 async function regenSection(key, title) {
   const d = S.bandData;
-  const prompt = `Community manager musical. Reescribí SOLO la sección "${title}" para el carrusel de Instagram de ${d.name}.
-Tono auténtico, cálido, sin frases corporativas. Sin emojis. Sin el título. Máximo 250 palabras.
-Géneros: ${[...d.genres,...d.tags].slice(0,5).join(', ')}.
-Álbumes: ${d.albums.slice(0,8).map(a=>a.year+' '+a.title).join(', ')}.
-Info: ${d.wiki?.slice(0,400)||'no disponible'}.
-Devolvé solo el texto, sin explicaciones.`;
-  return await gemini(prompt);
+  const wiki = d.wiki || '';
+  const paras = wiki.split(/\n\n+/).filter(p => p.length > 60);
+  if (!paras.length) return 'No hay texto adicional disponible de Wikipedia para esta sección.';
+  const existing = S.slides.find(s => s.key === key)?.body || '';
+  const fresh = paras.filter(p => !existing.includes(p.slice(0, 40)));
+  return fresh.length ? fresh.slice(0, 3).join('\n\n') : paras.slice(0, 2).join('\n\n');
 }
 
 // ── RENDER IMAGEN ─────────────────────────────────────────────────
