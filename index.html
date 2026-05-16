@@ -3,883 +3,345 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Band Carousel · Generador de carruseles musicales</title>
+<title>Band Carousel · Creador de carruseles musicales</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0e0d0b;
-  --bg-2: #1a1815;
-  --paper: #f4ede0;
-  --ink: #1a1815;
-  --accent: #ff5b1f;
-  --accent-2: #ffb84d;
-  --muted: #8c8478;
-  --border: #2a2620;
-  --border-light: #d8cfbe;
-  --header-h: 60px;
-  --footer-h: 44px;
+  --bg:#0e0d0b; --bg-2:#1a1815; --bg-3:#222019;
+  --paper:#f4ede0; --ink:#1a1815;
+  --accent:#ff5b1f; --accent-2:#ffb84d; --green:#4caf50;
+  --muted:#8c8478; --border:#2a2620;
+  --header-h:60px; --footer-h:44px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-html, body {
-  background: var(--bg);
-  color: var(--paper);
-  font-family: 'Inter', sans-serif;
-  min-height: 100vh;
-}
-body {
-  background:
-    radial-gradient(ellipse at top right, rgba(255,91,31,0.08), transparent 50%),
-    radial-gradient(ellipse at bottom left, rgba(255,184,77,0.05), transparent 50%),
-    var(--bg);
-  display: flex;
-  flex-direction: column;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+html,body{background:var(--bg);color:var(--paper);font-family:'Inter',sans-serif;min-height:100vh;}
+body{background:radial-gradient(ellipse at top right,rgba(255,91,31,.08),transparent 50%),radial-gradient(ellipse at bottom left,rgba(255,184,77,.05),transparent 50%),var(--bg);display:flex;flex-direction:column;}
 
-/* ===== HEADER ===== */
-header {
-  border-bottom: 1px solid var(--border);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--header-h);
-  flex-shrink: 0;
-}
-header .logo {
-  font-family: 'Fraunces', serif;
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-header .logo span { color: var(--accent); font-style: italic; }
-header .tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  display: none; /* oculto en mobile */
-}
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;height:var(--header-h);flex-shrink:0;}
+.logo{font-family:'Fraunces',serif;font-weight:800;font-size:22px;letter-spacing:-.02em;}
+.logo span{color:var(--accent);font-style:italic;}
+.tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;display:none;}
 
-/* ===== MAIN ===== */
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column; /* mobile: columna */
-}
+/* LAYOUT */
+main{flex:1;display:flex;flex-direction:column;}
 
-/* ===== ASIDE / PANEL ===== */
-aside {
-  border-bottom: 1px solid var(--border);
-  padding: 20px 16px;
-  background: rgba(255,255,255,0.01);
-  overflow-y: visible;
-}
+/* ASIDE */
+aside{border-bottom:1px solid var(--border);padding:20px 16px;background:rgba(255,255,255,.01);}
+.panel-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.panel-toggle-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent-2);display:flex;align-items:center;gap:8px;}
+.panel-toggle-label::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;}
+.panel-toggle-icon{color:var(--accent);font-size:18px;transition:transform .25s;}
+.panel-toggle-icon.open{transform:rotate(180deg);}
+.panel-body{overflow:hidden;max-height:0;transition:max-height .35s ease;}
+.panel-body.open{max-height:6000px;}
+aside h2{font-family:'Fraunces',serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--accent-2);margin-bottom:14px;margin-top:24px;display:flex;align-items:center;gap:8px;}
+aside h2::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;flex-shrink:0;}
+aside section{padding-bottom:20px;border-bottom:1px dashed var(--border);}
+aside section:last-of-type{border-bottom:none;}
 
-/* Toggle del panel en mobile */
-.panel-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  margin-bottom: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-.panel-toggle-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--accent-2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.panel-toggle-label::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-.panel-toggle-icon {
-  color: var(--accent);
-  font-size: 18px;
-  line-height: 1;
-  transition: transform 0.25s;
-}
-.panel-toggle-icon.open { transform: rotate(180deg); }
+/* CONTROLES */
+label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;margin-top:14px;}
+label:first-child{margin-top:0;}
+input[type="text"],select,textarea{width:100%;background:var(--bg-2);border:1px solid var(--border);color:var(--paper);padding:12px 13px;font-family:'Inter',sans-serif;font-size:16px;border-radius:4px;transition:border .2s;-webkit-appearance:none;}
+input[type="text"]:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);}
+textarea{resize:vertical;min-height:80px;font-size:13px;line-height:1.5;}
+input[type="number"]{width:80px;background:var(--bg-2);border:1px solid var(--border);color:var(--paper);padding:10px;font-family:'JetBrains Mono',monospace;font-size:16px;border-radius:4px;-webkit-appearance:none;}
+input[type="range"]{width:100%;accent-color:var(--accent);}
+input[type="color"]{width:100%;height:42px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;border-radius:4px;}
+input[type="file"]{width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+input[type="file"]::file-selector-button{background:var(--bg-2);border:1px solid var(--border);color:var(--accent-2);padding:10px 14px;margin-right:10px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;border-radius:3px;text-transform:uppercase;letter-spacing:.08em;}
+.btn{display:block;width:100%;background:var(--accent);color:var(--ink);border:none;padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;cursor:pointer;transition:transform .15s,box-shadow .15s;border-radius:4px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.btn:active{transform:scale(.97);}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,91,31,.3);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.secondary{background:transparent;color:var(--paper);border:1px solid var(--border);}
+.btn.secondary:hover{border-color:var(--accent-2);color:var(--accent-2);}
+.btn-group{display:flex;gap:8px;margin-top:12px;}
+.btn-group .btn{padding:11px;font-size:11px;}
+.segmented{display:flex;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:3px;margin-top:4px;}
+.segmented button{flex:1;background:transparent;border:none;color:var(--muted);padding:10px 6px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border-radius:3px;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.segmented button.active{background:var(--accent);color:var(--ink);font-weight:700;}
+.help-text{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;}
 
-.panel-body {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.35s ease;
-}
-.panel-body.open { max-height: 3000px; }
+/* RECIENTES */
+#recentPanel{display:none;}
+#recentPanel.vis{display:block;}
+.recent-list{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+.recent-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:border-color .15s;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.recent-item:hover{border-color:var(--accent-2);color:var(--accent-2);}
+.recent-item-del{color:var(--muted);padding:2px 6px;font-size:13px;}
+.recent-item-del:hover{color:#e55;}
 
-aside h2 {
-  font-family: 'Fraunces', serif;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--accent-2);
-  margin-bottom: 14px;
-  margin-top: 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-aside h2::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-aside section {
-  margin-bottom: 0;
-  padding-bottom: 20px;
-  border-bottom: 1px dashed var(--border);
-}
-aside section:last-of-type { border-bottom: none; }
+/* SECCIONES */
+#sectionsPanel{display:none;}
+#sectionsPanel.visible{display:block;}
+.section-checks{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.section-check-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent;user-select:none;}
+.section-check-item:hover{border-color:var(--muted);}
+.section-check-item.checked{border-color:var(--accent);background:rgba(255,91,31,.06);}
+.section-check-item.disabled{opacity:.4;cursor:not-allowed;}
+.section-check-item input[type="checkbox"]{display:none;}
+.check-box{width:18px;height:18px;border:2px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.section-check-item.checked .check-box{background:var(--accent);border-color:var(--accent);}
+.check-box::after{content:'';display:none;width:5px;height:9px;border:2px solid var(--ink);border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);}
+.section-check-item.checked .check-box::after{display:block;}
+.check-label{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--paper);}
+.check-tag{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em;}
+.rebuild-note{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;display:flex;align-items:flex-start;gap:6px;}
+.rebuild-note::before{content:'↺';color:var(--accent-2);font-size:12px;flex-shrink:0;}
 
-/* ===== CONTROLES ===== */
-label {
-  display: block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 6px;
-  margin-top: 14px;
-}
-label:first-child { margin-top: 0; }
+/* STAGE */
+.stage{flex:1;padding:20px 16px;overflow-y:auto;}
+.stage-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.stage-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;line-height:1.2;}
+.stage-title span{color:var(--accent);font-style:italic;}
+.stage-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;color:var(--muted);padding:24px 0;}
+.empty-state h3{font-family:'Fraunces',serif;font-size:28px;font-weight:400;font-style:italic;color:var(--paper);margin-bottom:12px;line-height:1.2;}
+.empty-state p{max-width:320px;font-size:13px;line-height:1.6;color:var(--muted);}
+.empty-state .dot{color:var(--accent);font-size:48px;line-height:1;margin-bottom:16px;}
 
-input[type="text"], select, textarea {
-  width: 100%;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  color: var(--paper);
-  padding: 12px 13px;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px; /* 16px previene zoom en iOS */
-  border-radius: 4px;
-  transition: border 0.2s;
-  -webkit-appearance: none;
-}
-input[type="text"]:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-input[type="number"] {
-  width: 80px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  color: var(--paper);
-  padding: 10px 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
-  border-radius: 4px;
-  -webkit-appearance: none;
-}
-input[type="range"] { width: 100%; accent-color: var(--accent); }
-input[type="color"] {
-  width: 100%; height: 42px;
-  border: 1px solid var(--border);
-  background: var(--bg-2);
-  cursor: pointer; border-radius: 4px;
-}
-input[type="file"] {
-  width: 100%;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--muted);
-}
-input[type="file"]::file-selector-button {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  color: var(--accent-2);
-  padding: 10px 14px;
-  margin-right: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  cursor: pointer;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:60px 0;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;text-align:center;}
+.spinner{width:34px;height:34px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-steps{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.loading-step{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);}
+.loading-step.done{color:var(--green);}
+.loading-step.active{color:var(--paper);}
+.loading-step::before{content:'○';font-size:10px;}
+.loading-step.done::before{content:'✓';color:var(--green);}
+.loading-step.active::before{content:'●';color:var(--accent);}
 
-.row { display: flex; gap: 10px; align-items: center; }
-.row > * { flex: 1; }
-.row label { margin: 0; }
+/* ALERTS */
+.error{background:rgba(255,91,31,.08);border-left:3px solid var(--accent);padding:14px 16px;color:var(--paper);font-size:13px;line-height:1.5;margin-bottom:16px;}
+.error strong{color:var(--accent);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;font-size:10px;display:block;margin-bottom:4px;}
+.warn{background:rgba(255,184,77,.08);border-left:3px solid var(--accent-2);padding:10px 14px;color:var(--paper);font-size:12px;line-height:1.5;margin-bottom:12px;border-radius:0 4px 4px 0;}
 
-.btn {
-  display: block;
-  width: 100%;
-  background: var(--accent);
-  color: var(--ink);
-  border: none;
-  padding: 15px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  border-radius: 4px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.btn:active { transform: scale(0.97); }
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(255,91,31,0.3);
-}
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn.secondary {
-  background: transparent;
-  color: var(--paper);
-  border: 1px solid var(--border);
-}
-.btn.secondary:hover { border-color: var(--accent-2); color: var(--accent-2); }
-.btn-group { display: flex; gap: 8px; margin-top: 12px; }
-.btn-group .btn { padding: 12px; font-size: 11px; }
+/* TEXTO OUTPUT */
+.text-output{display:flex;flex-direction:column;gap:14px;}
+.text-slide{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:18px 16px;position:relative;}
+.text-slide .slide-num{position:absolute;top:14px;right:16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.1em;}
+.text-slide h4{font-family:'Fraunces',serif;font-size:18px;margin-bottom:10px;color:var(--accent-2);padding-right:80px;}
+.text-slide p{font-size:13px;line-height:1.65;color:var(--paper);white-space:pre-wrap;}
+.slide-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+.slide-actions button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;border-radius:3px;transition:all .15s;}
+.copy-btn:hover{color:var(--accent-2);border-color:var(--accent-2);}
+.edit-btn:hover{color:var(--accent);border-color:var(--accent);}
+.regen-btn:hover{color:var(--green);border-color:var(--green);}
+.edit-area{margin-top:10px;display:none;}
+.edit-save{margin-top:6px;width:auto!important;display:inline-block!important;padding:8px 16px!important;font-size:10px!important;}
 
-.segmented {
-  display: flex;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px;
-  margin-top: 4px;
-}
-.segmented button {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  padding: 10px 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.segmented button.active {
-  background: var(--accent);
-  color: var(--ink);
-  font-weight: 700;
-}
+/* DRAG */
+.text-slide,.image-card{transition:opacity .2s,box-shadow .2s;}
+.text-slide[draggable="true"],.image-card[draggable="true"]{cursor:grab;}
+.text-slide.dragging,.image-card.dragging{opacity:.4;cursor:grabbing;}
+.text-slide.drag-over,.image-card.drag-over{box-shadow:inset 0 4px 0 var(--accent);}
+.drag-handle{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.drag-handle::before{content:'⋮⋮';color:var(--accent);font-size:14px;letter-spacing:-2px;}
+.order-banner{background:rgba(255,184,77,.08);border:1px dashed rgba(255,184,77,.3);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent-2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:8px;}
+.order-banner::before{content:'↕';font-size:14px;color:var(--accent);}
 
-.help-text {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 6px;
-  line-height: 1.5;
-}
+/* IMAGEN OUTPUT */
+.images-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+.image-card{display:flex;flex-direction:column;gap:8px;}
+.image-card .label-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.image-card .label-row span:first-child{color:var(--accent);}
+.image-card canvas{width:100%;height:auto;border:1px solid var(--border);border-radius:4px;background:#000;display:block;cursor:pointer;}
+.card-actions{display:flex;gap:6px;}
+.download,.preview-btn{flex:1;background:transparent;border:1px solid var(--border);color:var(--paper);padding:9px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;border-radius:3px;transition:all .15s;}
+.download:hover{background:var(--accent);color:var(--ink);border-color:var(--accent);}
+.preview-btn:hover{background:var(--bg-3);border-color:var(--accent-2);color:var(--accent-2);}
+.download-all{margin-bottom:16px;}
 
-/* ===== STAGE ===== */
-.stage {
-  flex: 1;
-  padding: 20px 16px;
-  overflow-y: auto;
-}
-.stage-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.stage-title {
-  font-family: 'Fraunces', serif;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-.stage-title span { color: var(--accent); font-style: italic; }
-.stage-meta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-inner{position:relative;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.modal-inner canvas{max-width:100%;max-height:76vh;object-fit:contain;border-radius:8px;border:1px solid var(--border);}
+.modal-close{position:absolute;top:-16px;right:-16px;background:var(--accent);color:var(--ink);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;z-index:10;}
+.modal-nav{display:flex;gap:12px;align-items:center;}
+.modal-nav button{background:var(--bg-2);border:1px solid var(--border);color:var(--paper);padding:8px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:all .15s;}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent);}
+.modal-counter{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
 
-/* ===== EMPTY STATE ===== */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  text-align: center;
-  color: var(--muted);
-  padding: 24px 0;
-}
-.empty-state h3 {
-  font-family: 'Fraunces', serif;
-  font-size: 28px;
-  font-weight: 400;
-  font-style: italic;
-  color: var(--paper);
-  margin-bottom: 12px;
-  line-height: 1.2;
-}
-.empty-state p {
-  max-width: 320px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.empty-state .dot {
-  color: var(--accent);
-  font-size: 48px;
-  line-height: 1;
-  margin-bottom: 16px;
-}
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;min-height:var(--footer-h);flex-shrink:0;}
+.footer-by{font-family:'Fraunces',serif;font-size:13px;font-weight:600;color:var(--paper);}
+.footer-by span{color:var(--accent);font-style:italic;}
+.footer-vibes{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;}
+.footer-vibes em{color:var(--accent-2);font-style:normal;}
 
-/* ===== LOADING ===== */
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 60px 0;
-  color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  text-align: center;
+/* BREAKPOINTS */
+@media(min-width:600px){
+  header{padding:16px 28px;height:68px;} .logo{font-size:26px;} .tag{display:block;}
+  aside{padding:24px 28px;} .stage{padding:24px 28px;} .empty-state h3{font-size:34px;}
+  .images-grid{grid-template-columns:repeat(2,1fr);} footer{padding:12px 28px;}
+  .panel-body{max-height:none!important;} .panel-toggle{display:none;}
 }
-.spinner {
-  width: 34px; height: 34px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+@media(min-width:960px){
+  header{padding:20px 40px;height:72px;} .logo{font-size:28px;}
+  main{flex-direction:row;height:calc(100vh - 72px - var(--footer-h));overflow:hidden;}
+  aside{width:380px;min-width:320px;max-width:420px;flex-shrink:0;border-bottom:none;border-right:1px solid var(--border);overflow-y:auto;height:100%;padding:28px;}
+  .stage{flex:1;height:100%;overflow-y:auto;padding:32px 40px;}
+  .empty-state h3{font-size:42px;} .empty-state p{max-width:480px;font-size:14px;}
+  .images-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));}
+  .stage-title{font-size:22px;} footer{padding:10px 40px;}
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.error {
-  background: rgba(255,91,31,0.08);
-  border-left: 3px solid var(--accent);
-  padding: 14px 16px;
-  color: var(--paper);
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 16px;
-}
-.error strong {
-  color: var(--accent);
-  font-family: 'JetBrains Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 10px;
-  display: block;
-  margin-bottom: 4px;
-}
-
-/* ===== TEXTO OUTPUT ===== */
-.text-output {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.text-slide {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 18px 16px;
-  position: relative;
-}
-.text-slide .slide-num {
-  position: absolute;
-  top: 14px; right: 16px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--accent);
-  letter-spacing: 0.1em;
-}
-.text-slide h4 {
-  font-family: 'Fraunces', serif;
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: var(--accent-2);
-  padding-right: 80px;
-}
-.text-slide p {
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--paper);
-  white-space: pre-wrap;
-}
-.text-slide .copy-btn {
-  margin-top: 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  padding: 8px 14px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: all 0.15s;
-}
-.text-slide .copy-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
-
-/* ===== DRAG & DROP ===== */
-.text-slide, .image-card {
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
-}
-.text-slide[draggable="true"], .image-card[draggable="true"] { cursor: grab; }
-.text-slide.dragging, .image-card.dragging { opacity: 0.4; cursor: grabbing; }
-.text-slide.drag-over, .image-card.drag-over {
-  box-shadow: inset 0 4px 0 var(--accent);
-}
-
-.drag-handle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 8px;
-}
-.drag-handle::before {
-  content: '⋮⋮';
-  color: var(--accent);
-  font-size: 14px;
-  letter-spacing: -2px;
-}
-
-.order-banner {
-  background: rgba(255,184,77,0.08);
-  border: 1px dashed rgba(255,184,77,0.3);
-  border-radius: 4px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--accent-2);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.order-banner::before { content: '↕'; font-size: 14px; color: var(--accent); }
-
-/* ===== IMAGEN OUTPUT ===== */
-.images-grid {
-  display: grid;
-  grid-template-columns: 1fr; /* mobile: 1 columna */
-  gap: 16px;
-}
-.image-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.image-card .label-row {
-  display: flex;
-  justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-.image-card .label-row span:first-child { color: var(--accent); }
-.image-card canvas {
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #000;
-  display: block;
-}
-.image-card .download {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--paper);
-  padding: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: all 0.15s;
-  touch-action: manipulation;
-}
-.image-card .download:hover { background: var(--accent); color: var(--ink); }
-
-.download-all { margin-bottom: 16px; }
-
-/* ===== PANEL DE SECCIONES (post-búsqueda) ===== */
-#sectionsPanel {
-  display: none;
-}
-#sectionsPanel.visible {
-  display: block;
-}
-.section-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-.section-check-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-.section-check-item:hover {
-  border-color: var(--muted);
-}
-.section-check-item.checked {
-  border-color: var(--accent);
-  background: rgba(255,91,31,0.06);
-}
-.section-check-item input[type="checkbox"] {
-  display: none;
-}
-.check-box {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 3px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  background: transparent;
-}
-.section-check-item.checked .check-box {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.check-box::after {
-  content: '';
-  display: none;
-  width: 5px;
-  height: 9px;
-  border: 2px solid var(--ink);
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-.section-check-item.checked .check-box::after {
-  display: block;
-}
-.check-label {
-  flex: 1;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--paper);
-}
-.check-tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-}
-.section-check-item.checked .check-label {
-  color: var(--paper);
-}
-.section-check-item.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.rebuild-note {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 10px;
-  line-height: 1.5;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-.rebuild-note::before {
-  content: '↺';
-  color: var(--accent-2);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-footer {
-  border-top: 1px solid var(--border);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px;
-  height: auto;
-  min-height: var(--footer-h);
-  flex-shrink: 0;
-}
-footer .footer-by {
-  font-family: 'Fraunces', serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--paper);
-  letter-spacing: -0.01em;
-}
-footer .footer-by span {
-  color: var(--accent);
-  font-style: italic;
-}
-footer .footer-vibes {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-footer .footer-vibes em {
-  color: var(--accent-2);
-  font-style: normal;
-}
-
-/* ===================================================
-   BREAKPOINTS — mobile first
-   ================================================ */
-
-/* Tablet ≥ 600px */
-@media (min-width: 600px) {
-  header { padding: 16px 28px; height: 68px; }
-  header .logo { font-size: 26px; }
-  header .tag { display: block; }
-  aside { padding: 24px 28px; }
-  .stage { padding: 24px 28px; }
-  .empty-state h3 { font-size: 34px; }
-  .images-grid { grid-template-columns: repeat(2, 1fr); }
-  footer { padding: 12px 28px; }
-  .panel-body { max-height: none !important; } /* En tablet+ siempre visible */
-  .panel-toggle { display: none; }            /* ocultar toggle */
-}
-
-/* Desktop ≥ 960px: layout side by side */
-@media (min-width: 960px) {
-  header { padding: 20px 40px; height: 72px; }
-  header .logo { font-size: 28px; }
-  main {
-    flex-direction: row;        /* panel + stage en paralelo */
-    height: calc(100vh - 72px - var(--footer-h));
-    overflow: hidden;
-  }
-  aside {
-    width: 360px;
-    min-width: 320px;
-    max-width: 400px;
-    flex-shrink: 0;
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    height: 100%;
-    padding: 28px;
-  }
-  .stage {
-    flex: 1;
-    height: 100%;
-    overflow-y: auto;
-    padding: 32px 40px;
-  }
-  .empty-state h3 { font-size: 42px; }
-  .empty-state p { max-width: 480px; font-size: 14px; }
-  .images-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-  .stage-title { font-size: 22px; }
-  footer { padding: 10px 40px; }
-}
-
-/* Wide ≥ 1280px */
-@media (min-width: 1280px) {
-  aside { width: 400px; max-width: 420px; }
-}
+@media(min-width:1280px){aside{width:420px;max-width:440px;}}
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">Band<span>·</span>Carousel</div>
-  <div class="tag">v1.0 / generador editorial</div>
+  <div class="tag">v2.0 / generador editorial</div>
 </header>
 
 <main>
-  <!-- ========== PANEL DE CONTROL ========== -->
 <aside>
-    <!-- Toggle visible solo en mobile -->
-    <div class="panel-toggle" id="panelToggle">
-      <div class="panel-toggle-label">Configuración</div>
-      <div class="panel-toggle-icon" id="panelIcon">▾</div>
+  <div class="panel-toggle" id="panelToggle">
+    <div class="panel-toggle-label">Configuración</div>
+    <div class="panel-toggle-icon" id="panelIcon">▾</div>
+  </div>
+  <div class="panel-body" id="panelBody">
+
+  <section id="recentPanel">
+    <h2>Recientes</h2>
+    <div class="recent-list" id="recentList"></div>
+  </section>
+
+  <section>
+    <h2>Banda</h2>
+    <label for="bandName">Nombre</label>
+    <input type="text" id="bandName" placeholder="Ej: blink-182" autocomplete="off">
+    <div class="help-text">MusicBrainz + Wikipedia + búsqueda web con IA</div>
+  </section>
+
+  <section>
+    <h2>Formato</h2>
+    <label>Modo de salida</label>
+    <div class="segmented" id="modeSegmented">
+      <button data-mode="text" class="active">Solo texto</button>
+      <button data-mode="image">Imagen + texto</button>
     </div>
-    <div class="panel-body" id="panelBody">
-
-    <section>
-      <h2>Banda</h2>
-      <label for="bandName">Nombre</label>
-      <input type="text" id="bandName" placeholder="Ej: blink-182" autocomplete="off">
-      <div class="help-text">Datos desde MusicBrainz + Wikipedia</div>
-    </section>
-
-    <section>
-      <h2>Formato</h2>
-
-      <label>Cantidad de imágenes / slides</label>
-      <input type="number" id="slideCount" min="1" max="10" value="4">
-
-      <label>Modo de salida</label>
-      <div class="segmented" id="modeSegmented">
-        <button data-mode="text" class="active">Solo texto</button>
-        <button data-mode="image">Imagen + texto</button>
-      </div>
-
-      <label>Proporción</label>
-      <div class="segmented" id="aspectSegmented">
-        <button data-aspect="1:1" class="active">1:1</button>
-        <button data-aspect="4:5">4:5</button>
-        <button data-aspect="9:16">9:16</button>
-      </div>
-    </section>
-
-    <!-- Sección visible solo si modo = image -->
-    <section id="imageSection" style="display:none;">
-      <h2>Imagen de fondo</h2>
-      <label>Subir imagen de fondo</label>
-      <input type="file" id="bgUpload" accept="image/*">
-
-      <label>Estilo de fondo</label>
-      <div class="segmented" id="bgStyleSegmented">
-        <button data-bg="overlay" class="active">Overlay</button>
-        <button data-bg="blur">Blur</button>
-        <button data-bg="solid">Sólido</button>
-      </div>
-
-      <label>Intensidad overlay / blur</label>
-      <input type="range" id="bgIntensity" min="0" max="100" value="55">
-
-      <label>Color sólido (si aplica)</label>
-      <input type="color" id="bgSolidColor" value="#0e0d0b">
-
-      <label>Imagen de la banda (Wikipedia)</label>
-      <div class="segmented" id="bandImgSegmented">
-        <button data-bandimg="auto" class="active">Auto (Wikipedia)</button>
-        <button data-bandimg="off">Sin imagen</button>
-      </div>
-      <div class="help-text">Se busca automáticamente. Aparece en slide 1 y portada.</div>
-    </section>
-
-    <section id="textStyleSection" style="display:none;">
-      <h2>Tipografía</h2>
-
-      <label>Familia</label>
-      <select id="fontFamily">
-        <option value="'Fraunces', serif">Fraunces (Editorial)</option>
-        <option value="'Inter', sans-serif">Inter (Limpio)</option>
-        <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-        <option value="Georgia, serif">Georgia</option>
-        <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
-        <option value="'Courier New', monospace">Courier</option>
-        <option value="'Times New Roman', serif">Times New Roman</option>
-        <option value="Impact, sans-serif">Impact</option>
-      </select>
-
-      <label>Tamaño de cuerpo: <span id="fontSizeVal">42</span>px</label>
-      <input type="range" id="fontSize" min="20" max="80" value="42">
-
-      <label>Tamaño de título: <span id="titleSizeVal">96</span>px</label>
-      <input type="range" id="titleSize" min="40" max="180" value="96">
-
-      <label>Color de texto</label>
-      <input type="color" id="textColor" value="#f4ede0">
-
-      <label>Color de acento (títulos)</label>
-      <input type="color" id="accentColor" value="#ff5b1f">
-
-      <label>Alineación</label>
-      <div class="segmented" id="alignSegmented">
-        <button data-align="left">Izquierda</button>
-        <button data-align="center" class="active">Centro</button>
-        <button data-align="right">Derecha</button>
-      </div>
-
-      <label>Posición vertical</label>
-      <div class="segmented" id="vAlignSegmented">
-        <button data-valign="top">Arriba</button>
-        <button data-valign="middle" class="active">Centro</button>
-        <button data-valign="bottom">Abajo</button>
-      </div>
-
-      <label>Sangría / Padding: <span id="paddingVal">80</span>px</label>
-      <input type="range" id="padding" min="20" max="200" value="80">
-
-      <label>Interlineado: <span id="lineHeightVal">1.4</span></label>
-      <input type="range" id="lineHeight" min="100" max="200" value="140">
-    </section>
-
-    <section>
-      <button id="generateBtn" class="btn">Generar</button>
-      <div class="btn-group">
-        <button id="resetBtn" class="btn secondary">Reset</button>
-      </div>
-    </section>
-
-    <!-- Panel de secciones — aparece tras la búsqueda -->
-    <section id="sectionsPanel">
-      <h2>Secciones encontradas</h2>
-      <div class="section-checks" id="sectionChecks">
-        <!-- Se genera dinámicamente tras la búsqueda -->
-      </div>
-      <div class="rebuild-note">Tildear o destildear reconstruye el carrusel al instante</div>
-    </section>
-
-    </div><!-- /panel-body -->
-  </aside>
-
-  <!-- ========== STAGE ========== -->
-  <div class="stage">
-    <div class="stage-header">
-      <div class="stage-title" id="stageTitle">Pendiente<span>.</span></div>
-      <div class="stage-meta" id="stageMeta">Esperando banda…</div>
+    <label>Proporción</label>
+    <div class="segmented" id="aspectSegmented">
+      <button data-aspect="1:1" class="active">1:1</button>
+      <button data-aspect="4:5">4:5</button>
+      <button data-aspect="9:16">9:16</button>
     </div>
-    <div id="output">
-      <div class="empty-state">
-        <div class="dot">●</div>
-        <h3>Creador de<br><em>Carruseles</em></h3>
-        <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información en formato listo para Instagram.</p>
-      </div>
+    <label>Partes de discografía</label>
+    <input type="number" id="discoPartes" min="1" max="4" value="1">
+    <div class="help-text">Dividí la disco en más slides si hay muchos álbumes</div>
+  </section>
+
+  <section id="imageSection" style="display:none;">
+    <h2>Imagen de fondo</h2>
+    <label>Subir imagen</label>
+    <input type="file" id="bgUpload" accept="image/*">
+    <label>Estilo</label>
+    <div class="segmented" id="bgStyleSegmented">
+      <button data-bg="overlay" class="active">Overlay</button>
+      <button data-bg="blur">Blur</button>
+      <button data-bg="solid">Sólido</button>
+    </div>
+    <label>Intensidad: <span id="bgIntensityVal">55</span>%</label>
+    <input type="range" id="bgIntensity" min="0" max="100" value="55">
+    <label>Color sólido</label>
+    <input type="color" id="bgSolidColor" value="#0e0d0b">
+    <label>Foto de banda (Wikipedia)</label>
+    <div class="segmented" id="bandImgSegmented">
+      <button data-bandimg="auto" class="active">Auto</button>
+      <button data-bandimg="off">Sin foto</button>
+    </div>
+  </section>
+
+  <section id="textStyleSection" style="display:none;">
+    <h2>Tipografía</h2>
+    <label>Familia</label>
+    <select id="fontFamily">
+      <option value="'Fraunces', serif">Fraunces (Editorial)</option>
+      <option value="'Inter', sans-serif">Inter (Limpio)</option>
+      <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+      <option value="Georgia, serif">Georgia</option>
+      <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+      <option value="'Courier New', monospace">Courier</option>
+      <option value="'Times New Roman', serif">Times New Roman</option>
+      <option value="Impact, sans-serif">Impact</option>
+    </select>
+    <label>Cuerpo: <span id="fontSizeVal">42</span>px</label>
+    <input type="range" id="fontSize" min="18" max="80" value="42">
+    <label>Título: <span id="titleSizeVal">86</span>px</label>
+    <input type="range" id="titleSize" min="30" max="180" value="86">
+    <label>Color texto</label>
+    <input type="color" id="textColor" value="#f4ede0">
+    <label>Color acento</label>
+    <input type="color" id="accentColor" value="#ff5b1f">
+    <label>Alineación</label>
+    <div class="segmented" id="alignSegmented">
+      <button data-align="left">Izq</button>
+      <button data-align="center" class="active">Centro</button>
+      <button data-align="right">Der</button>
+    </div>
+    <label>Posición vertical</label>
+    <div class="segmented" id="vAlignSegmented">
+      <button data-valign="top">Arriba</button>
+      <button data-valign="middle" class="active">Centro</button>
+      <button data-valign="bottom">Abajo</button>
+    </div>
+    <label>Padding: <span id="paddingVal">80</span>px</label>
+    <input type="range" id="padding" min="20" max="200" value="80">
+    <label>Interlineado: <span id="lineHeightVal">1.4</span></label>
+    <input type="range" id="lineHeight" min="100" max="200" value="140">
+  </section>
+
+  <section id="sectionsPanel">
+    <h2>Secciones encontradas</h2>
+    <div class="section-checks" id="sectionChecks"></div>
+    <div class="rebuild-note">Tildear/destildear reconstruye al instante</div>
+  </section>
+
+  <section>
+    <button id="generateBtn" class="btn">Generar carrusel</button>
+    <div class="btn-group">
+      <button id="resetBtn" class="btn secondary">Reset</button>
+    </div>
+  </section>
+
+  </div>
+</aside>
+
+<div class="stage">
+  <div class="stage-header">
+    <div class="stage-title" id="stageTitle">Pendiente<span>.</span></div>
+    <div class="stage-meta"  id="stageMeta">Esperando banda…</div>
+  </div>
+  <div id="output">
+    <div class="empty-state">
+      <div class="dot">●</div>
+      <h3>Creador de<br><em>Carruseles</em></h3>
+      <p>Escribí el nombre de una banda, elegí las secciones y generá el carrusel listo para Instagram.</p>
     </div>
   </div>
+</div>
 </main>
+
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-inner">
+    <button class="modal-close" id="modalClose">✕</button>
+    <canvas id="modalCanvas"></canvas>
+    <div class="modal-nav">
+      <button id="modalPrev">← Anterior</button>
+      <span class="modal-counter" id="modalCounter">1 / 1</span>
+      <button id="modalNext">Siguiente →</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   <div class="footer-by">Realizado por <span>EZMEZ</span></div>
@@ -887,1367 +349,544 @@ footer .footer-vibes em {
 </footer>
 
 <script>
-// ============================================================================
-//  ESTADO
-// ============================================================================
-const state = {
-  mode: 'text',
-  aspect: '1:1',
-  bgStyle: 'overlay',
-  align: 'center',
-  valign: 'middle',
-  bgImage: null,
-  bandImg: null,
-  bandImgMode: 'auto',
-  bandData: null,
-  humanizedCache: null,   // resultado de Claude API, se reutiliza al retildar
-  slides: [],
-  activeSections: {       // qué secciones están activas
-    portada: true,
-    historia: true,
-    estilo: true,
-    integrantes: true,
-    discografia: true,
-    ultimo: true,
-  },
+'use strict';
+// ── ESTADO ─────────────────────────────────────────────────────
+const S = {
+  mode:'text', aspect:'1:1', bgStyle:'overlay',
+  align:'center', valign:'middle',
+  bgImage:null, bandImg:null, bandImgMode:'auto',
+  bandData:null, humanizedCache:null, slides:[],
+  activeSections:{portada:true,historia:true,estilo:true,integrantes:true,discografia:true,ultimo:true},
+  modalIndex:0,
 };
+const MB  = 'https://musicbrainz.org/ws/2';
+const WES = 'https://es.wikipedia.org/api/rest_v1/page/summary';
+const WEN = 'https://en.wikipedia.org/api/rest_v1/page/summary';
+const RK  = 'bandcarousel_recent';
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-// ============================================================================
-//  CONTROLES UI
-// ============================================================================
-function bindSegmented(containerId, key, callback) {
-  const container = document.getElementById(containerId);
-  container.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state[key] = btn.dataset[Object.keys(btn.dataset)[0]];
-      if (callback) callback();
+// ── UI BINDINGS ─────────────────────────────────────────────────
+function seg(id,key,cb){
+  const el=document.getElementById(id); if(!el) return;
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    el.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); S[key]=b.dataset[Object.keys(b.dataset)[0]];
+    if(cb)cb();
+  }));
+}
+seg('modeSegmented','mode',()=>{
+  const img=S.mode==='image';
+  document.getElementById('imageSection').style.display    =img?'':'none';
+  document.getElementById('textStyleSection').style.display=img?'':'none';
+  if(S.bandData)rebuildCarousel();
+});
+seg('aspectSegmented','aspect',()=>{if(S.bandData)rebuildCarousel();});
+seg('bgStyleSegmented','bgStyle'); seg('alignSegmented','align');
+seg('vAlignSegmented','valign');   seg('bandImgSegmented','bandImgMode');
+
+[['fontSize','fontSizeVal'],['titleSize','titleSizeVal'],['padding','paddingVal']].forEach(([id,v])=>{
+  const a=document.getElementById(id),b=document.getElementById(v);
+  if(a&&b)a.addEventListener('input',()=>b.textContent=a.value);
+});
+const lhA=document.getElementById('lineHeight'),lhB=document.getElementById('lineHeightVal');
+if(lhA&&lhB)lhA.addEventListener('input',()=>lhB.textContent=(lhA.value/100).toFixed(2));
+const bgA=document.getElementById('bgIntensity'),bgB=document.getElementById('bgIntensityVal');
+if(bgA&&bgB)bgA.addEventListener('input',()=>bgB.textContent=bgA.value);
+
+document.getElementById('bgUpload').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=ev=>{const i=new Image();i.onload=()=>S.bgImage=i;i.src=ev.target.result;}; r.readAsDataURL(f);
+});
+document.getElementById('resetBtn').addEventListener('click',resetAll);
+document.getElementById('generateBtn').addEventListener('click',generate);
+document.getElementById('bandName').addEventListener('keydown',e=>{if(e.key==='Enter')generate();});
+document.getElementById('panelToggle').addEventListener('click',()=>{
+  const b=document.getElementById('panelBody'),i=document.getElementById('panelIcon');
+  b.classList.toggle('open'); i.classList.toggle('open',b.classList.contains('open'));
+});
+document.getElementById('modalClose').addEventListener('click',closeModal);
+document.getElementById('previewModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById('modalPrev').addEventListener('click',()=>navModal(-1));
+document.getElementById('modalNext').addEventListener('click',()=>navModal(1));
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('previewModal').classList.contains('open'))return;
+  if(e.key==='Escape')closeModal();
+  if(e.key==='ArrowLeft')navModal(-1);
+  if(e.key==='ArrowRight')navModal(1);
+});
+// FIX #7: esperar fonts antes de cualquier dibujo
+document.fonts.ready.then(()=>{});
+renderRecent();
+
+// ── HISTORIAL (#11) ──────────────────────────────────────────────
+function getRecent(){try{return JSON.parse(localStorage.getItem(RK)||'[]');}catch{return[];}}
+function saveRecent(data){
+  let l=getRecent().filter(r=>r.name.toLowerCase()!==data.name.toLowerCase());
+  l.unshift({name:data.name,area:[data.beginArea,data.country].filter(Boolean).join(', '),ts:Date.now()});
+  l=l.slice(0,5); try{localStorage.setItem(RK,JSON.stringify(l));}catch{}
+  renderRecent();
+}
+function renderRecent(){
+  const list=getRecent(), panel=document.getElementById('recentPanel'), cont=document.getElementById('recentList');
+  if(!list.length){panel.className='';panel.style.display='none';return;}
+  panel.style.display='block';
+  cont.innerHTML=list.map((r,i)=>`
+    <div class="recent-item" data-i="${i}">
+      <span>${esc(r.name)} <small style="color:var(--muted);font-size:9px">${esc(r.area)}</small></span>
+      <span class="recent-item-del" data-del="${i}">✕</span>
+    </div>`).join('');
+  cont.querySelectorAll('.recent-item').forEach(el=>{
+    el.addEventListener('click',e=>{
+      if(e.target.dataset.del!==undefined)return;
+      document.getElementById('bandName').value=list[parseInt(el.dataset.i)].name; generate();
+    });
+  });
+  cont.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation(); let l=getRecent(); l.splice(parseInt(el.dataset.del),1);
+      try{localStorage.setItem(RK,JSON.stringify(l));}catch{} renderRecent();
     });
   });
 }
 
-bindSegmented('modeSegmented', 'mode', () => {
-  document.getElementById('imageSection').style.display = state.mode === 'image' ? '' : 'none';
-  document.getElementById('textStyleSection').style.display = state.mode === 'image' ? '' : 'none';
-  if (state.bandData) rebuildCarousel();
-});
-bindSegmented('aspectSegmented', 'aspect', () => { if (state.bandData) rebuildCarousel(); });
-bindSegmented('bgStyleSegmented', 'bgStyle');
-bindSegmented('alignSegmented', 'align');
-bindSegmented('vAlignSegmented', 'valign');
-bindSegmented('bandImgSegmented', 'bandImgMode');
-
-// Sliders con readouts
-['fontSize', 'titleSize', 'padding'].forEach(id => {
-  const el = document.getElementById(id);
-  const val = document.getElementById(id + 'Val');
-  el.addEventListener('input', () => val.textContent = el.value);
-});
-const lhEl = document.getElementById('lineHeight');
-const lhVal = document.getElementById('lineHeightVal');
-lhEl.addEventListener('input', () => lhVal.textContent = (lhEl.value / 100).toFixed(2));
-
-// Upload de imagen
-document.getElementById('bgUpload').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const img = new Image();
-    img.onload = () => { state.bgImage = img; };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-document.getElementById('resetBtn').addEventListener('click', () => {
-  document.getElementById('bandName').value = '';
-  state.bandData = null;
-  state.slides = [];
-  state.humanizedCache = null;
-  Object.keys(state.activeSections).forEach(k => state.activeSections[k] = true);
+// ── RESET ───────────────────────────────────────────────────────
+function resetAll(){
+  document.getElementById('bandName').value='';
+  S.bandData=S.humanizedCache=S.bandImg=null; S.slides=[];
+  Object.keys(S.activeSections).forEach(k=>S.activeSections[k]=true);
   document.getElementById('sectionsPanel').classList.remove('visible');
-  document.getElementById('sectionChecks').innerHTML = '';
-  document.getElementById('output').innerHTML = `
-    <div class="empty-state">
-      <div class="dot">●</div>
-      <h3>Creador de<br><em>Carruseles</em></h3>
-      <p>Escribí el nombre de una banda, elegí cuántas slides querés y el sistema reparte la información en formato listo para Instagram.</p>
-    </div>`;
-  document.getElementById('stageTitle').innerHTML = 'Pendiente<span>.</span>';
-  document.getElementById('stageMeta').textContent = 'Esperando banda…';
-});
-
-document.getElementById('generateBtn').addEventListener('click', generate);
-document.getElementById('bandName').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') generate();
-});
-
-// ============================================================================
-//  DATA FETCHING — MusicBrainz + Wikipedia
-// ============================================================================
-const MB_BASE = 'https://musicbrainz.org/ws/2';
-const WP_BASE = 'https://es.wikipedia.org/api/rest_v1/page/summary';
-const WP_BASE_EN = 'https://en.wikipedia.org/api/rest_v1/page/summary';
-
-// NOTA: el browser no permite setear User-Agent manualmente vía fetch,
-// pero MusicBrainz acepta ?fmt=json y user-agents anónimos a 1 req/s.
-// Espaciamos las requests con delays para no caer en el rate limit.
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-async function fetchMB(path) {
-  const url = `${MB_BASE}/${path}${path.includes('?') ? '&' : '?'}fmt=json`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`MusicBrainz: ${res.status}`);
-  return res.json();
+  document.getElementById('sectionChecks').innerHTML='';
+  document.getElementById('stageTitle').innerHTML='Pendiente<span>.</span>';
+  document.getElementById('stageMeta').textContent='Esperando banda…';
+  document.getElementById('output').innerHTML=`<div class="empty-state"><div class="dot">●</div><h3>Creador de<br><em>Carruseles</em></h3><p>Escribí el nombre de una banda, elegí las secciones y generá el carrusel listo para Instagram.</p></div>`;
 }
 
-async function fetchWikipedia(title) {
-  // Intenta ES primero, cae a EN
-  for (const base of [WP_BASE, WP_BASE_EN]) {
-    try {
-      const res = await fetch(`${base}/${encodeURIComponent(title)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.extract && data.extract.length > 50) return data;
-      }
-    } catch (e) { /* sigue */ }
-  }
-  return null;
+// ── FETCH ───────────────────────────────────────────────────────
+async function fetchMB(path){
+  const r=await fetch(`${MB}/${path}${path.includes('?')?'&':'?'}fmt=json`);
+  if(!r.ok)throw new Error('MusicBrainz '+r.status); return r.json();
 }
-
-async function fetchWikipediaImage(title) {
-  // Busca la imagen principal del artículo de Wikipedia en EN
-  // Usa la API de thumbnails de Wikipedia
-  for (const lang of ['en', 'es']) {
-    try {
-      const url = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const pages = data.query && data.query.pages;
-      if (!pages) continue;
-      const page = Object.values(pages)[0];
-      if (page && page.thumbnail && page.thumbnail.source) {
-        return await loadImageFromUrl(page.thumbnail.source);
-      }
-    } catch (e) { /* sigue */ }
-  }
-  return null;
+async function fetchWiki(title){
+  for(const b of[WES,WEN]){
+    try{const r=await fetch(`${b}/${encodeURIComponent(title)}`);if(r.ok){const d=await r.json();if(d.extract?.length>50)return d;}}catch{}
+  } return null;
 }
-
-function loadImageFromUrl(url) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    // Proxy a través de wikipedia para evitar CORS en algunos casos
-    img.src = url;
-    setTimeout(() => resolve(null), 5000); // timeout 5s
+async function fetchWikiImg(title){
+  for(const lang of['en','es']){
+    try{
+      const r=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=600&origin=*`);
+      if(!r.ok)continue; const d=await r.json();
+      const p=Object.values(d?.query?.pages||{})[0];
+      if(p?.thumbnail?.source)return await loadImg(p.thumbnail.source);
+    }catch{}
+  } return null;
+}
+function loadImg(url){
+  return new Promise(res=>{
+    const i=new Image(); i.crossOrigin='anonymous';
+    i.onload=()=>res(i); i.onerror=()=>res(null); i.src=url;
+    setTimeout(()=>res(null),6000);
   });
 }
 
-async function searchBand(name) {
-  // 1. Buscar artista
-  const search = await fetchMB(`artist?query=artist:${encodeURIComponent(name)}&limit=5`);
-  if (!search.artists || search.artists.length === 0) {
-    throw new Error('No se encontró ninguna banda con ese nombre en MusicBrainz.');
-  }
-
-  // Preferir tipo "Group" sobre "Person"
-  const artist = search.artists.find(a => a.type === 'Group') || search.artists[0];
-
-  await sleep(1100);
-
-  // 2. Detalles del artista (tags, country, area, life-span, miembros)
-  const detail = await fetchMB(`artist/${artist.id}?inc=tags+genres+artist-rels`);
-
-  // Extraer miembros desde relations type "member of band"
-  const members = [];
-  if (detail.relations) {
-    detail.relations.forEach(rel => {
-      if (rel.type === 'member of band' && rel.direction === 'backward' && rel.artist) {
-        const m = {
-          name: rel.artist.name,
-          begin: rel['begin'] ? rel['begin'].slice(0, 4) : null,
-          end: rel['end'] ? rel['end'].slice(0, 4) : null,
-          ended: rel.ended,
-          instruments: (rel.attributes || []).filter(a =>
-            !['original', 'additional', 'guest'].includes(a.toLowerCase())
-          ),
-        };
-        members.push(m);
-      }
+// ── SEARCH BAND (#1: fallback IA si MB no encuentra) ────────────
+async function searchBand(name){
+  try{
+    const s=await fetchMB(`artist?query=artist:${encodeURIComponent(name)}&limit=5`);
+    const artist=(s.artists||[]).find(a=>a.type==='Group')||(s.artists||[])[0];
+    if(!artist)throw new Error('no encontrado');
+    await sleep(1100);
+    const d=await fetchMB(`artist/${artist.id}?inc=tags+genres+artist-rels`);
+    const members=[];
+    (d.relations||[]).forEach(rel=>{
+      if(rel.type==='member of band'&&rel.direction==='backward'&&rel.artist)
+        members.push({name:rel.artist.name,begin:(rel.begin||'').slice(0,4),end:(rel.end||'').slice(0,4),ended:rel.ended,instruments:(rel.attributes||[]).filter(a=>!['original','additional','guest'].includes(a.toLowerCase()))});
     });
+    members.sort((a,b)=>a.ended!==b.ended?a.ended?1:-1:(a.begin||'9999').localeCompare(b.begin||'9999'));
+    await sleep(1100);
+    const rg=await fetchMB(`release-group?artist=${artist.id}&type=album&limit=100`);
+    const albums=(rg['release-groups']||[]).filter(r=>r['first-release-date']&&r['primary-type']==='Album').filter(r=>{const s=r['secondary-types']||[];return!s.includes('Compilation')&&!s.includes('Live')&&!s.includes('Soundtrack');}).sort((a,b)=>(a['first-release-date']||'').localeCompare(b['first-release-date']||'')).map(a=>({title:a.title,year:(a['first-release-date']||'').slice(0,4)}));
+    const wiki=await fetchWiki(d.name);
+    const wikiImage=await fetchWikiImg(d.name);
+    return{name:d.name,country:d.country||d.area?.name||null,area:d.area?.name||null,beginArea:d['begin-area']?.name||null,lifeSpan:d['life-span']||{},tags:(d.tags||[]).sort((a,b)=>b.count-a.count).slice(0,6).map(t=>t.name),genres:(d.genres||[]).sort((a,b)=>b.count-a.count).slice(0,4).map(g=>g.name),albums,members,wiki:wiki?.extract||null,wikiImage,fromMB:true};
+  }catch(e){
+    console.warn('MB falló:',e.message);
+    return{name,country:null,area:null,beginArea:null,lifeSpan:{},tags:[],genres:[],albums:[],members:[],wiki:null,wikiImage:null,fromMB:false};
   }
-  // Ordenar: actuales primero, luego por año de inicio
-  members.sort((a, b) => {
-    if (a.ended !== b.ended) return a.ended ? 1 : -1;
-    return (a.begin || '9999').localeCompare(b.begin || '9999');
-  });
-
-  await sleep(1100);
-
-  // 3. Discografía (release-groups tipo Album, ordenados por fecha)
-  const rg = await fetchMB(`release-group?artist=${artist.id}&type=album&limit=100`);
-
-  // Filtrar y ordenar release-groups oficiales (no compilaciones / live)
-  const albums = (rg['release-groups'] || [])
-    .filter(r => r['first-release-date'] && r['primary-type'] === 'Album')
-    .filter(r => {
-      const sec = r['secondary-types'] || [];
-      return !sec.includes('Compilation') && !sec.includes('Live') && !sec.includes('Soundtrack');
-    })
-    .sort((a, b) => (a['first-release-date'] || '').localeCompare(b['first-release-date'] || ''));
-
-  // 4. Wikipedia (resumen narrativo + imagen)
-  const wiki = await fetchWikipedia(detail.name);
-
-  // 5. Imagen de Wikipedia (no bloquea si falla)
-  let wikiImage = null;
-  try {
-    wikiImage = await fetchWikipediaImage(detail.name);
-  } catch(e) { /* sin imagen */ }
-
-  return {
-    name: detail.name,
-    country: detail.country || (detail.area && detail.area.name) || null,
-    area: detail.area ? detail.area.name : null,
-    beginArea: detail['begin-area'] ? detail['begin-area'].name : null,
-    lifeSpan: detail['life-span'] || {},
-    type: detail.type,
-    tags: (detail.tags || []).sort((a, b) => b.count - a.count).slice(0, 6).map(t => t.name),
-    genres: (detail.genres || []).sort((a, b) => b.count - a.count).slice(0, 4).map(g => g.name),
-    albums: albums.map(a => ({
-      title: a.title,
-      date: a['first-release-date'],
-      year: (a['first-release-date'] || '').slice(0, 4),
-    })),
-    members: members,
-    wiki: wiki ? wiki.extract : null,
-    wikiImage: wikiImage,
-  };
 }
 
-// ============================================================================
-//  COMPOSICIÓN DE SLIDES
-// ============================================================================
-function composeSlides(data, count, h) {
-  // h = objeto humanizado de Claude API (puede ser null → fallback a datos crudos)
-  const AS = state.activeSections; // alias corto
+// ── HUMANIZE (#1 fallback, #web search) ─────────────────────────
+async function humanizeWithClaude(data){
+  const albumList=data.albums.map(a=>`${a.year} — ${a.title}`).join('\n')||'No disponible';
+  const memberList=data.members.slice(0,10).map(m=>{
+    const inst=m.instruments.length?` (${m.instruments.slice(0,2).join(', ')})`:'';
+    const period=m.begin?(m.ended?` [${m.begin}–${m.end}]`:` [desde ${m.begin}]`):'';
+    return m.name+inst+period;
+  }).join(', ')||'No documentados';
 
-  // === BLOQUES BASE ===
-  const bandName   = data.name.toUpperCase();
-  const origin     = [data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'Origen no especificado';
-  const start      = (data.lifeSpan.begin || '').slice(0, 4);
-  const endY       = (data.lifeSpan.ended && data.lifeSpan.end) ? data.lifeSpan.end.slice(0, 4) : null;
-  const yearLine   = start ? (endY ? `${start} — ${endY}` : `Desde ${start}`) : '';
-  const originLine = [origin, yearLine].filter(Boolean).join(' · ');
+  // Paso 1: web search
+  updateLoading(1);
+  let webFindings='';
+  try{
+    const sr=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Investigá la banda "${data.name}" para un carrusel de Instagram. Buscá: historia de formación, sonido, hitos de carrera, último lanzamiento, curiosidades. Base: origen=${[data.beginArea,data.area,data.country].filter(Boolean).join(', ')||'?'}, géneros=${[...data.genres,...data.tags].slice(0,5).join(', ')}, wiki=${data.wiki?.slice(0,300)||'no disponible'}.`}]})});
+    if(sr.ok){const sd=await sr.json();webFindings=(sd.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').slice(0,3000);}
+  }catch(e){console.warn('web search:',e.message);}
 
-  const styles    = data.genres.length ? data.genres : data.tags;
-  const albumLines = data.albums.length
-    ? data.albums.map(a => `${a.year} · ${a.title}`)
-    : ['Sin álbumes registrados en MusicBrainz'];
-  const latest     = data.albums.length ? data.albums[data.albums.length - 1] : null;
-  const membersText = buildMembersText(data.members);
+  // Paso 2: redactar
+  updateLoading(2);
+  const wp=`Sos un community manager musical. Carruseles de Instagram auténticos, cálidos, sin frases corporativas. Sin emojis ni hashtags. Español rioplatense.
+${!data.fromMB?'⚠️ No hay datos MB. Usá búsqueda web y tu conocimiento.':''}
+BANDA: ${data.name}
+Origen: ${[data.beginArea,data.area,data.country].filter(Boolean).join(', ')||'?'} | Período: ${(data.lifeSpan.begin||'').slice(0,4)||'?'} → ${data.lifeSpan.ended?((data.lifeSpan.end||'').slice(0,4)||'?'):'presente'}
+Géneros: ${[...data.genres,...data.tags].slice(0,6).join(', ')||'?'} | Integrantes: ${memberList}
+Discografía: ${albumList} | Último: ${data.albums.length?data.albums[data.albums.length-1].title+' ('+data.albums[data.albums.length-1].year+')':'?'}
+Wiki: ${data.wiki?.slice(0,400)||'no disponible'}
+WEB: ${webFindings||'no disponible'}
+Solo JSON sin backticks:
+{"portada_tag":"frase gancho 5-8 palabras sin el nombre","historia":"mín 3 párrafos, origen con contexto de época, formación, hitos, anécdotas. Máx 420 palabras.","estilo":"2 párrafos: cómo suena con metáforas concretas + propuesta lírica. Máx 200 palabras.","integrantes_intro":"oración cálida que humanice a los integrantes","discografia_intro":"2 oraciones que enmarquen la disco como viaje artístico","ultimo_contexto":"3 oraciones: qué representa, qué evolucionó, por qué escucharlo","cierre":"2 oraciones: invitación genuina + dato curioso que deje pensando"}`;
+  try{
+    const wr=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:wp}]})});
+    if(!wr.ok)throw new Error(wr.status);
+    const wd=await wr.json();
+    const raw=(wd.content||[]).map(c=>c.text||'').join('').replace(/```json|```/gi,'').trim();
+    const m=raw.match(/\{[\s\S]*\}/); if(!m)throw new Error('sin JSON');
+    return JSON.parse(m[0]);
+  }catch(e){console.warn('IA redacción:',e.message);return null;}
+}
 
-  // === TEXTOS — humanizados o fallback ===
-  const portadaTag  = h?.portada_tag       || '';
-  const historia    = h?.historia          || buildHistoryText(data);
-  const estilo      = h?.estilo            || buildStyleDescription(styles, data.wiki) || styles.slice(0,4).join(' · ');
-  const integrIntro = h?.integrantes_intro || 'La banda está formada por:';
-  const discoIntro  = h?.discografia_intro || 'Su camino discográfico:';
-  const ultimoCtx   = h?.ultimo_contexto   || (latest ? `${latest.title} (${latest.year}).` : 'Sin lanzamientos recientes.');
-  const cierre      = h?.cierre            || 'Buscalos y dale play.';
+// ── LOADING ─────────────────────────────────────────────────────
+function showLoading(){
+  document.getElementById('output').innerHTML=`<div class="loading"><div class="spinner"></div><div id="loadMain" style="font-size:12px;color:var(--paper)">Iniciando…</div><div class="loading-steps"><div class="loading-step" id="ls0">Consultando MusicBrainz</div><div class="loading-step" id="ls1">Investigando en la web</div><div class="loading-step" id="ls2">Redactando con IA</div><div class="loading-step" id="ls3">Componiendo carrusel</div></div></div>`;
+}
+function updateLoading(step){
+  for(let i=0;i<4;i++){const e=document.getElementById(`ls${i}`);if(!e)continue;e.className='loading-step'+(i<step?' done':i===step?' active':'');}
+  const m=document.getElementById('loadMain'),msgs=['Consultando MusicBrainz…','Investigando en la web…','Redactando con IA…','Componiendo carrusel…'];
+  if(m&&msgs[step])m.textContent=msgs[step];
+}
 
-  // === ARMAR LISTA DE SECCIONES ACTIVAS ===
-  // Cada sección es un objeto { key, title, body }
-  // La portada siempre va primera y tiene layout especial
-  const pool = [];
+// ── GENERATE ────────────────────────────────────────────────────
+async function generate(){
+  const name=document.getElementById('bandName').value.trim();
+  if(!name){alert('Ingresá el nombre de una banda');return;}
+  showLoading(); document.getElementById('generateBtn').disabled=true;
+  document.getElementById('stageMeta').textContent=`Buscando "${name}"…`;
+  try{
+    updateLoading(0);
+    const data=await searchBand(name);
+    S.bandData=data; S.bandImg=data.wikiImage||null;
+    if(!data.fromMB){
+      const w=document.getElementById('output').querySelector('.warn');
+      if(!w)document.getElementById('output').insertAdjacentHTML('afterbegin',`<div class="warn">⚠️ "${esc(name)}" no encontrado en MusicBrainz. La IA buscará la info en la web igualmente.</div>`);
+    }
+    const humanized=await humanizeWithClaude(data);
+    S.humanizedCache=humanized;
+    updateLoading(3);
+    Object.keys(S.activeSections).forEach(k=>S.activeSections[k]=true);
+    buildSectionsPanel(data,humanized);
+    rebuildCarousel();
+    document.getElementById('stageTitle').innerHTML=`${esc(data.name)}<span>.</span>`;
+    saveRecent(data);
+  }catch(err){
+    document.getElementById('output').innerHTML=`<div class="error"><strong>Error</strong>${esc(err.message)}</div>`;
+  }finally{document.getElementById('generateBtn').disabled=false;}
+}
 
-  // Portada — siempre presente, sin repetir el portadaTag en el título
-  pool.push({
-    key: 'portada',
-    title: bandName,
-    // body de la portada: SOLO el tag de gancho + origen · año
-    // (no repetimos el nombre porque ya está en title)
-    body: [portadaTag, originLine].filter(Boolean).join('\n'),
+// ── SECCIONES ───────────────────────────────────────────────────
+function buildSectionsPanel(data,humanized){
+  const SECS=[
+    {key:'portada',label:'Portada',tag:'siempre',locked:true},
+    {key:'historia',label:'Historia',tag:humanized?.historia?'con IA + web':'básica'},
+    {key:'estilo',label:'Estilo musical',tag:humanized?.estilo?'con IA + web':'básico'},
+    {key:'integrantes',label:'Integrantes',tag:data.members.length>0?`${data.members.length} encontrados`:'sin datos'},
+    {key:'discografia',label:'Discografía',tag:data.albums.length>0?`${data.albums.length} álbumes`:'sin datos'},
+    {key:'ultimo',label:'Último lanzamiento',tag:data.albums.length>0?data.albums[data.albums.length-1].year:'sin datos'},
+  ];
+  const c=document.getElementById('sectionChecks');
+  c.innerHTML=SECS.map(s=>`<label class="section-check-item ${S.activeSections[s.key]?'checked':''} ${s.locked?'disabled':''}" data-key="${s.key}"><input type="checkbox" ${S.activeSections[s.key]?'checked':''} ${s.locked?'disabled':''}><div class="check-box"></div><span class="check-label">${s.label}</span><span class="check-tag">${s.tag}</span></label>`).join('');
+  c.querySelectorAll('.section-check-item:not(.disabled)').forEach(item=>{
+    item.addEventListener('click',()=>{const k=item.dataset.key;S.activeSections[k]=!S.activeSections[k];item.classList.toggle('checked',S.activeSections[k]);rebuildCarousel();});
   });
+  document.getElementById('sectionsPanel').classList.add('visible');
+}
 
-  if (AS.historia) {
-    pool.push({ key: 'historia', title: 'HISTORIA', body: historia });
+// ── COMPOSE SLIDES (#2: disco en partes) ────────────────────────
+function composeSlides(data,h){
+  const AS=S.activeSections;
+  const origin=[data.beginArea,data.area,data.country].filter(Boolean).join(', ')||'Origen no especificado';
+  const start=(data.lifeSpan.begin||'').slice(0,4);
+  const endY=(data.lifeSpan.ended&&data.lifeSpan.end)?data.lifeSpan.end.slice(0,4):null;
+  const yearLine=start?(endY?`${start} — ${endY}`:`Desde ${start}`):'';
+  const originLine=[origin,yearLine].filter(Boolean).join(' · ');
+  const styles=data.genres.length?data.genres:data.tags;
+  const discoPartes=Math.max(1,parseInt(document.getElementById('discoPartes').value)||1);
+  const albumLines=data.albums.length?data.albums.map(a=>`${a.year} · ${a.title}`):['Sin álbumes registrados'];
+  const latest=data.albums.length?data.albums[data.albums.length-1]:null;
+  const mt=buildMT(data.members);
+  const portadaTag=h?.portada_tag||'';
+  const historia=h?.historia||buildHFallback(data);
+  const estilo=h?.estilo||buildEFallback(styles,data.wiki);
+  const integrIntro=h?.integrantes_intro||'La banda está formada por:';
+  const discoIntro=h?.discografia_intro||'Su camino discográfico:';
+  const ultimoCtx=h?.ultimo_contexto||(latest?`${latest.title} (${latest.year}).`:'');
+  const cierre=h?.cierre||'Buscalos y dale play.';
+  const pool=[];
+  pool.push({key:'portada',title:data.name.toUpperCase(),body:[portadaTag,originLine].filter(Boolean).join('\n')});
+  if(AS.historia)pool.push({key:'historia',title:'HISTORIA',body:historia});
+  if(AS.estilo)pool.push({key:'estilo',title:'ESTILO',body:estilo});
+  if(AS.integrantes&&data.members.length>0)pool.push({key:'integrantes',title:'INTEGRANTES',body:`${integrIntro}\n\n${mt.full}`});
+  if(AS.discografia){
+    if(discoPartes===1){pool.push({key:'discografia',title:'DISCOGRAFÍA',body:`${discoIntro}\n\n${albumLines.join('\n')}`});}
+    else{const sz=Math.ceil(albumLines.length/discoPartes);for(let p=0;p<discoPartes;p++){const chunk=albumLines.slice(p*sz,(p+1)*sz);if(!chunk.length)continue;pool.push({key:`discografia_${p}`,title:`DISCOGRAFÍA ${p+1}/${discoPartes}`,body:(p===0?discoIntro+'\n\n':'')+chunk.join('\n')});}}
   }
-  if (AS.estilo) {
-    pool.push({ key: 'estilo', title: 'ESTILO', body: estilo });
-  }
-  if (AS.integrantes && data.members.length > 0) {
-    pool.push({ key: 'integrantes', title: 'INTEGRANTES', body: `${integrIntro}\n\n${membersText.full}` });
-  }
-  if (AS.discografia) {
-    pool.push({ key: 'discografia', title: 'DISCOGRAFÍA', body: `${discoIntro}\n\n${albumLines.join('\n')}` });
-  }
-  if (AS.ultimo && latest) {
-    pool.push({ key: 'ultimo', title: 'ÚLTIMO LANZAMIENTO', body: `${ultimoCtx}\n\n${cierre}` });
-  }
-
-  // Si solo queda la portada, agregarle algo de info
-  if (pool.length === 1) {
-    pool[0].body = [portadaTag, originLine, '', historia.split('\n')[0] || ''].filter(Boolean).join('\n');
-  }
-
+  if(AS.ultimo&&latest)pool.push({key:'ultimo',title:'ÚLTIMO LANZAMIENTO',body:`${ultimoCtx}\n\n${cierre}`});
+  if(pool.length===1)pool[0].body=[portadaTag,originLine,'',historia.split('\n')[0]||''].filter(Boolean).join('\n');
   return pool;
 }
-
-function buildMembersText(members) {
-  if (!members || members.length === 0) {
-    return { short: 'Sin integrantes registrados', full: 'Sin integrantes registrados en MusicBrainz' };
-  }
-
-  // Versión corta: solo nombres (máx 6)
-  const short = members.slice(0, 6).map(m => m.name).join(' · ');
-
-  // Versión completa: nombre + instrumentos + período
-  const full = members.map(m => {
-    const inst = m.instruments && m.instruments.length
-      ? ` — ${m.instruments.slice(0, 3).join(', ')}`
-      : '';
-    let period = '';
-    if (m.begin && m.end) period = ` (${m.begin}–${m.end})`;
-    else if (m.begin && !m.ended) period = ` (desde ${m.begin})`;
-    else if (m.end) period = ` (hasta ${m.end})`;
-    return `• ${m.name}${inst}${period}`;
-  }).join('\n');
-
-  return { short, full };
+function buildMT(members){
+  if(!members?.length)return{short:'Sin integrantes registrados',full:'Sin integrantes registrados'};
+  const short=members.slice(0,6).map(m=>m.name).join(' · ');
+  const full=members.map(m=>{const inst=m.instruments?.length?` — ${m.instruments.slice(0,3).join(', ')}`:'';const p=m.begin&&m.end?` (${m.begin}–${m.end})`:m.begin&&!m.ended?` (desde ${m.begin})`:m.end?` (hasta ${m.end})`:'';return`• ${m.name}${inst}${p}`;}).join('\n');
+  return{short,full};
+}
+function buildHFallback(data){
+  if(data.wiki)return data.wiki.split('. ').slice(0,4).join('. ')+'.';
+  const p=[],s=(data.lifeSpan.begin||'').slice(0,4);
+  if(s)p.push(`Formados en ${s}${data.beginArea?' en '+data.beginArea:''}.`);
+  if(data.members.length)p.push(`Han tenido ${data.members.length} integrantes.`);
+  if(data.albums.length)p.push(`Editaron ${data.albums.length} álbumes entre ${data.albums[0].year} y ${data.albums[data.albums.length-1].year}.`);
+  return p.join(' ')||'Historia no documentada.';
+}
+function buildEFallback(genres,wiki){
+  if(wiki)return wiki.split('. ').slice(0,2).join('. ')+'.';
+  return genres.slice(0,4).map(s=>s.replace(/\b\w/g,c=>c.toUpperCase())).join(', ')||'Estilo no clasificado.';
 }
 
-function buildHistoryText(data) {
-  if (data.wiki) {
-    // Tomar 3-4 oraciones del resumen wiki
-    const sentences = data.wiki.split('. ').slice(0, 4).join('. ');
-    return sentences.endsWith('.') ? sentences : sentences + '.';
-  }
-
-  // Fallback armado desde MB
-  const albumCount = data.albums.length;
-  const memberCount = data.members.length;
-  const start = (data.lifeSpan.begin || '').slice(0, 4);
-  const parts = [];
-  if (start) parts.push(`Formados en ${start}${data.beginArea ? ` en ${data.beginArea}` : ''}.`);
-  if (memberCount) parts.push(`Pasaron ${memberCount} integrante${memberCount > 1 ? 's' : ''} por la banda.`);
-  if (albumCount) parts.push(`Editaron ${albumCount} álbum${albumCount > 1 ? 'es' : ''} de estudio entre ${data.albums[0].year} y ${data.albums[albumCount - 1].year}.`);
-  return parts.length ? parts.join(' ') : 'Historia no documentada en las fuentes consultadas.';
+// ── REBUILD ─────────────────────────────────────────────────────
+function rebuildCarousel(){
+  if(!S.bandData)return;
+  S.slides=composeSlides(S.bandData,S.humanizedCache);
+  document.getElementById('stageMeta').textContent=`${S.slides.length} slide${S.slides.length!==1?'s':''} · ${S.aspect} · ${S.mode==='text'?'solo texto':'imagen + texto'}`;
+  if(S.mode==='text')renderTextSlides(); else renderImageSlides();
 }
 
-function buildStyleDescription(genres, wiki) {
-  // Pequeño glosario para enriquecer la explicación
-  const dict = {
-    'rock': 'Rock: música con guitarras eléctricas, ritmo marcado y estructura de canción.',
-    'pop': 'Pop: melodías accesibles y producción orientada al consumo masivo.',
-    'punk': 'Punk: actitud cruda, tempos rápidos y temáticas contestatarias.',
-    'metal': 'Metal: distorsión pesada, virtuosismo instrumental y atmósfera oscura.',
-    'indie': 'Indie: producción independiente con identidad estética propia.',
-    'electronic': 'Electrónica: producción basada en sintetizadores y secuenciación.',
-    'hip hop': 'Hip Hop: rapeo sobre bases rítmicas, narrativa y cultura urbana.',
-    'jazz': 'Jazz: improvisación, swing y armonía compleja.',
-    'folk': 'Folk: raíz acústica con tradición narrativa y melódica.',
-    'reggae': 'Reggae: ritmo en contratiempo nacido en Jamaica.',
-    'blues': 'Blues: doce compases, escala pentatónica y expresión emocional.',
-    'soul': 'Soul: gospel + R&B, voz protagónica y groove.',
-    'r&b': 'R&B: ritmos negros con énfasis en la melodía vocal.',
-    'alternative': 'Alternativo: rock fuera del mainstream con búsqueda sonora.',
-    'progressive': 'Progresivo: estructuras largas, cambios de compás y ambición conceptual.',
-    'experimental': 'Experimental: ruptura con la forma tradicional.',
-    'psychedelic': 'Psicodélico: texturas envolventes y referencias contraculturales.',
-    'grunge': 'Grunge: rock sucio nacido en Seattle a fines de los 80.',
-    'shoegaze': 'Shoegaze: paredes de guitarra con efectos y voces sumergidas.',
-    'new wave': 'New Wave: post-punk con sintetizadores y estética moderna.',
-    'post-punk': 'Post-Punk: angular, frío y experimental tras la primera ola punk.',
-    'ska': 'Ska: precursor del reggae, sección de vientos y ritmo rebote.',
-    'trap': 'Trap: subgénero del hip hop con hi-hats rápidos y 808s.',
-    'reggaeton': 'Reggaetón: dembow rítmico caribeño con influencias latinas.',
-    'cumbia': 'Cumbia: ritmo bailable de raíz colombiana, popular en Latinoamérica.',
-    'tango': 'Tango: música rioplatense, melancólica y sofisticada.',
-    'rock nacional': 'Rock Nacional: tradición rockera argentina con identidad propia.',
-  };
-
-  const descriptions = [];
-  for (const g of genres.slice(0, 3)) {
-    const key = g.toLowerCase();
-    for (const dictKey in dict) {
-      if (key.includes(dictKey)) {
-        descriptions.push(dict[dictKey]);
-        break;
-      }
-    }
-  }
-
-  if (descriptions.length === 0 && wiki) {
-    // Extraer primera frase con menciones estilísticas del resumen wiki
-    const firstSentence = wiki.split('.')[0];
-    if (firstSentence.length < 280) descriptions.push(firstSentence + '.');
-  }
-
-  return [...new Set(descriptions)].join(' ');
-}
-
-function buildTrajectory(data) {
-  if (data.wiki) {
-    // Tomar las primeras 2-3 oraciones del resumen wiki
-    const sentences = data.wiki.split('. ').slice(0, 3).join('. ');
-    return sentences.endsWith('.') ? sentences : sentences + '.';
-  }
-  const albumCount = data.albums.length;
-  if (albumCount === 0) return 'Trayectoria no documentada en las fuentes consultadas.';
-  return `Editaron ${albumCount} álbum${albumCount > 1 ? 'es' : ''} de estudio entre ${data.albums[0].year} y ${data.albums[albumCount - 1].year}.`;
-}
-
-// ============================================================================
-//  FLUJO PRINCIPAL
-// ============================================================================
-async function generate() {
-  const name = document.getElementById('bandName').value.trim();
-  if (!name) { alert('Ingresá el nombre de una banda'); return; }
-
-  const count = parseInt(document.getElementById('slideCount').value);
-  if (count < 1 || count > 10) { alert('La cantidad debe estar entre 1 y 10'); return; }
-
-  const output = document.getElementById('output');
-  output.innerHTML = `
-    <div class="loading">
-      <div class="spinner"></div>
-      <div id="loadingMain">Consultando MusicBrainz…</div>
-      <div id="loadingSub" style="font-size:10px; color:var(--muted);">~3-5 segundos · rate limit 1 req/s</div>
-    </div>`;
-  document.getElementById('generateBtn').disabled = true;
-  document.getElementById('stageMeta').textContent = `Buscando "${name}"…`;
-
-  try {
-    // PASO 1 — MusicBrainz + Wikipedia
-    updateLoading('Consultando MusicBrainz…', '~3-5 seg · rate limit 1 req/s');
-    const data = await searchBand(name);
-    state.bandData = data;
-    state.bandImg = data.wikiImage || null;
-
-    // PASO 2 — Investigar + humanizar con Claude API
-    const humanized = await humanizeWithClaude(data, count);
-    state.humanizedCache = humanized;
-
-    // PASO 3 — Resetear secciones activas a todas encendidas
-    Object.keys(state.activeSections).forEach(k => state.activeSections[k] = true);
-
-    // PASO 4 — Construir panel de secciones y renderizar
-    buildSectionsPanel(data, humanized);
-    rebuildCarousel();
-
-    document.getElementById('stageTitle').innerHTML = `${data.name}<span>.</span>`;
-
-  } catch (err) {
-    output.innerHTML = `
-      <div class="error">
-        <strong>Error</strong>
-        ${err.message}<br>
-        Probá con otro nombre o verificá la escritura. MusicBrainz suele tener bandas indexadas en idioma original.
-      </div>`;
-  } finally {
-    document.getElementById('generateBtn').disabled = false;
-  }
-}
-
-// Construye el panel lateral con los toggles de secciones
-function buildSectionsPanel(data, humanized) {
-  const panel = document.getElementById('sectionsPanel');
-  const container = document.getElementById('sectionChecks');
-
-  // Definir secciones disponibles con íconos y etiquetas
-  const SECTIONS = [
-    { key: 'portada',      label: 'Portada',           tag: 'siempre',  locked: true  },
-    { key: 'historia',     label: 'Historia',           tag: humanized?.historia     ? 'con IA' : 'básica' },
-    { key: 'estilo',       label: 'Estilo musical',     tag: humanized?.estilo       ? 'con IA' : 'básico' },
-    { key: 'integrantes',  label: 'Integrantes',        tag: data.members.length > 0 ? `${data.members.length} encontrados` : 'sin datos' },
-    { key: 'discografia',  label: 'Discografía',        tag: data.albums.length > 0  ? `${data.albums.length} álbumes`      : 'sin datos' },
-    { key: 'ultimo',       label: 'Último lanzamiento', tag: data.albums.length > 0  ? data.albums[data.albums.length-1].year : 'sin datos' },
-  ];
-
-  container.innerHTML = SECTIONS.map(s => `
-    <label class="section-check-item ${state.activeSections[s.key] ? 'checked' : ''} ${s.locked ? 'disabled' : ''}"
-           data-key="${s.key}">
-      <input type="checkbox" ${state.activeSections[s.key] ? 'checked' : ''} ${s.locked ? 'disabled' : ''}>
-      <div class="check-box"></div>
-      <span class="check-label">${s.label}</span>
-      <span class="check-tag">${s.tag}</span>
-    </label>
-  `).join('');
-
-  // Bindings — tildear/destildear reconstruye al instante
-  container.querySelectorAll('.section-check-item:not(.disabled)').forEach(item => {
-    item.addEventListener('click', () => {
-      const key = item.dataset.key;
-      state.activeSections[key] = !state.activeSections[key];
-      item.classList.toggle('checked', state.activeSections[key]);
-      rebuildCarousel();
-    });
+// ── RENDER TEXTO ─────────────────────────────────────────────────
+function renderTextSlides(){
+  const out=document.getElementById('output');
+  let html=`<div class="order-banner">Arrastrá las tarjetas para reordenar</div><div class="download-all"><button class="btn secondary" id="copyAllBtn">Copiar todas (en orden)</button></div><div class="text-output" id="slidesContainer">`;
+  S.slides.forEach((slide,i)=>{
+    html+=`<div class="text-slide" draggable="true" data-index="${i}"><div class="drag-handle">Arrastrar</div><div class="slide-num">SLIDE <span class="slide-pos">${i+1}</span>/${S.slides.length}</div><h4>${esc(slide.title)}</h4><p id="sText-${i}">${esc(slide.body)}</p><div class="edit-area" id="editArea-${i}"><textarea id="editTA-${i}" rows="6">${esc(slide.body)}</textarea><button class="btn edit-save" data-save="${i}">Guardar</button></div><div class="slide-actions"><button class="copy-btn" data-i="${i}">Copiar</button><button class="edit-btn" data-i="${i}">Editar</button><button class="regen-btn" data-i="${i}">↺ Regenerar</button></div></div>`;
   });
-
-  panel.classList.add('visible');
+  html+='</div>'; out.innerHTML=html;
+  enableDnD('#slidesContainer','.text-slide',updatePos);
+  // Copiar
+  out.querySelectorAll('.copy-btn').forEach(b=>b.addEventListener('click',()=>{const i=parseInt(b.dataset.i);navigator.clipboard.writeText(`${S.slides[i].title}\n\n${document.getElementById(`sText-${i}`).textContent}`);b.textContent='✓ Copiado';setTimeout(()=>b.textContent='Copiar',1500);}));
+  // Editar (#5)
+  out.querySelectorAll('.edit-btn').forEach(b=>b.addEventListener('click',()=>{const i=parseInt(b.dataset.i),a=document.getElementById(`editArea-${i}`),o=a.style.display==='block';a.style.display=o?'none':'block';b.textContent=o?'Editar':'Cerrar';}));
+  out.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>{const i=parseInt(b.dataset.save),v=document.getElementById(`editTA-${i}`).value;S.slides[i].body=v;document.getElementById(`sText-${i}`).textContent=v;document.getElementById(`editArea-${i}`).style.display='none';out.querySelectorAll('.edit-btn')[i].textContent='Editar';}));
+  // Regenerar (#9)
+  out.querySelectorAll('.regen-btn').forEach(b=>b.addEventListener('click',async()=>{const i=parseInt(b.dataset.i);b.textContent='…';b.disabled=true;try{const t=await regenSection(S.slides[i].key,S.slides[i].title);S.slides[i].body=t;document.getElementById(`sText-${i}`).textContent=t;const ta=document.getElementById(`editTA-${i}`);if(ta)ta.value=t;}catch(e){console.warn(e);}b.textContent='↺ Regenerar';b.disabled=false;}));
+  // Copiar todo
+  document.getElementById('copyAllBtn').addEventListener('click',()=>{navigator.clipboard.writeText(getOrdered().map((s,i)=>`===== SLIDE ${i+1} =====\n${s.title}\n\n${s.body}`).join('\n\n'));document.getElementById('copyAllBtn').textContent='✓ Todo copiado';setTimeout(()=>document.getElementById('copyAllBtn').textContent='Copiar todas (en orden)',1800);});
 }
 
-// Recompone los slides y re-renderiza sin llamar a la API
-function rebuildCarousel() {
-  if (!state.bandData) return;
-  const count = parseInt(document.getElementById('slideCount').value) || 6;
-  state.slides = composeSlides(state.bandData, count, state.humanizedCache);
-
-  const meta = `${state.slides.length} slide${state.slides.length !== 1 ? 's' : ''} · ${state.aspect} · ${state.mode === 'text' ? 'solo texto' : 'imagen + texto'}`;
-  document.getElementById('stageMeta').textContent = meta;
-
-  if (state.mode === 'text') {
-    renderTextSlides();
-  } else {
-    renderImageSlides();
-  }
+// ── REGENERAR SECCIÓN (#9) ───────────────────────────────────────
+async function regenSection(key,title){
+  const d=S.bandData;
+  const p=`Community manager musical. Reescribí SOLO "${title}" para el carrusel de ${d.name}. Tono auténtico, sin corporativo, sin emojis. Sin el título. Máx 250 palabras. Usá: géneros=${[...d.genres,...d.tags].slice(0,5).join(', ')}, álbumes=${d.albums.slice(0,8).map(a=>a.year+' '+a.title).join(', ')}, wiki=${d.wiki?.slice(0,300)||'no disponible'}.`;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:p}]})});
+  if(!r.ok)throw new Error(r.status);
+  const d2=await r.json(); return(d2.content||[]).map(c=>c.text||'').join('').trim();
 }
 
-function updateLoading(main, sub) {
-  const m = document.getElementById('loadingMain');
-  const s = document.getElementById('loadingSub');
-  if (m) m.textContent = main;
-  if (s) s.textContent = sub;
+// ── RENDER IMAGEN ─────────────────────────────────────────────────
+function getDims(){return{w:1080,h:{['1:1']:1080,['4:5']:1350,['9:16']:1920}[S.aspect]||1080};}
+
+function renderImageSlides(){
+  const out=document.getElementById('output');
+  const {w,h}=getDims();
+  let html=`<div class="order-banner">Arrastrá las tarjetas para reordenar</div><div class="download-all"><button class="btn secondary" id="downloadAllBtn">Descargar todas (en orden)</button></div><div class="images-grid" id="slidesContainer">`;
+  S.slides.forEach((slide,i)=>{html+=`<div class="image-card" draggable="true" data-index="${i}"><div class="label-row"><span>Slide <span class="slide-pos">${i+1}</span>/${S.slides.length}</span><span>${w}×${h}</span></div><canvas id="cv-${i}" title="Click para preview"></canvas><div class="card-actions"><button class="preview-btn" data-i="${i}">👁 Preview</button><button class="download" data-i="${i}">⬇ Descargar</button></div></div>`;});
+  html+='</div>'; out.innerHTML=html;
+  // FIX #7: esperar fonts
+  document.fonts.ready.then(()=>S.slides.forEach((_,i)=>drawSlide(document.getElementById(`cv-${i}`),S.slides[i],i,S.slides.length)));
+  enableDnD('#slidesContainer','.image-card',()=>{updatePos();redrawAll();});
+  // Preview (#4)
+  out.querySelectorAll('.preview-btn').forEach(b=>b.addEventListener('click',()=>openModal(parseInt(b.dataset.i))));
+  out.querySelectorAll('canvas').forEach(c=>c.addEventListener('click',()=>openModal(parseInt(c.id.replace('cv-','')))));
+  // Descargar
+  out.querySelectorAll('.download').forEach(b=>b.addEventListener('click',()=>{const i=parseInt(b.dataset.i),pos=parseInt(b.closest('.image-card').querySelector('.slide-pos').textContent);const l=document.createElement('a');l.download=`${(S.bandData?.name||'banda').replace(/[^a-z0-9]/gi,'_')}_slide_${pos}.png`;l.href=document.getElementById(`cv-${i}`).toDataURL('image/png');l.click();}));
+  document.getElementById('downloadAllBtn').addEventListener('click',()=>{getOrderedIdx().forEach(({originalIndex},p)=>setTimeout(()=>{const l=document.createElement('a');l.download=`${(S.bandData?.name||'banda').replace(/[^a-z0-9]/gi,'_')}_slide_${p+1}.png`;l.href=document.getElementById(`cv-${originalIndex}`).toDataURL('image/png');l.click();},p*320));});
 }
 
-// ============================================================================
-//  HUMANIZACIÓN + BÚSQUEDA WEB VÍA CLAUDE API
-// ============================================================================
-async function humanizeWithClaude(data, slideCount) {
-  const albumList  = data.albums.map(a => `${a.year} — ${a.title}`).join('\n');
-  const memberList = data.members.slice(0, 10).map(m => {
-    const inst   = m.instruments.length ? ` (${m.instruments.slice(0,2).join(', ')})` : '';
-    const period = m.begin ? (m.ended ? ` [${m.begin}–${m.end}]` : ` [desde ${m.begin}]`) : '';
-    return `${m.name}${inst}${period}`;
-  }).join(', ') || 'No documentados';
-
-  // ── PASO 1: Claude busca en la web y procesa los resultados ──────────────
-  updateLoading('Investigando la banda…', 'Claude está buscando info actualizada');
-
-  const searchPrompt = `Necesito que investigues la banda "${data.name}" para escribir un carrusel de Instagram atractivo y bien informado.
-
-Datos base que ya tengo:
-- Origen: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
-- Activos desde: ${(data.lifeSpan.begin || '').slice(0,4) || '?'} ${data.lifeSpan.ended ? '(disueltos en ' + ((data.lifeSpan.end||'').slice(0,4)||'?') + ')' : '(aún activos)'}
-- Géneros: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
-- Integrantes conocidos: ${memberList}
-- Discografía MusicBrainz: ${albumList || 'ninguna registrada'}
-- Wikipedia: ${data.wiki ? data.wiki.slice(0,600) : 'no disponible'}
-
-Hacé búsquedas sobre esta banda para obtener:
-1. Historia de formación, contexto cultural, anécdotas relevantes
-2. Descripción real de su sonido con ejemplos concretos
-3. Hitos importantes: tours, premios, momentos clave
-4. Info sobre su último lanzamiento o actividad reciente
-5. Curiosidades o datos que los fans valoran
-
-Buscá en español si es una banda hispanohablante, en inglés si es internacional.`;
-
-  let webFindings = '';
-
-  try {
-    // Primera llamada: Claude busca con web_search
-    const searchRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: searchPrompt }]
-      })
-    });
-
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-
-      // Extraer texto de todos los bloques (text + tool_result)
-      const textBlocks = (searchData.content || [])
-        .filter(b => b.type === 'text')
-        .map(b => b.text)
-        .join('\n');
-
-      const toolResults = (searchData.content || [])
-        .filter(b => b.type === 'tool_result' || b.type === 'mcp_tool_result')
-        .map(b => (b.content?.[0]?.text || ''))
-        .join('\n');
-
-      webFindings = [textBlocks, toolResults].filter(Boolean).join('\n\n').slice(0, 3000);
-    }
-  } catch(e) {
-    console.warn('Web search falló:', e.message);
-  }
-
-  // ── PASO 2: Claude redacta con todo el contexto ───────────────────────────
-  updateLoading('Redactando con IA…', 'Escribiendo el contenido del carrusel');
-
-  const writePrompt = `Sos un community manager apasionado por la música. Escribís carruseles de Instagram que la gente comparte porque se sienten auténticos, informativos y con personalidad real.
-
-Tu tono: cálido, entusiasta, directo. Nada corporativo. Sin emojis. Sin hashtags. Sin markdown ni asteriscos.
-Escribís en español rioplatense cuando aplica. Usás mayúsculas solo en nombres propios y comienzo de oración.
-
-════ DATOS DE LA BANDA: ${data.name.toUpperCase()} ════
-
-Origen: ${[data.beginArea, data.area, data.country].filter(Boolean).join(', ') || 'desconocido'}
-Período: ${(data.lifeSpan.begin||'').slice(0,4)||'?'} ${data.lifeSpan.ended ? '→ ' + ((data.lifeSpan.end||'').slice(0,4)||'?') : '→ presente'}
-Géneros: ${[...data.genres, ...data.tags].slice(0,6).join(', ')}
-Integrantes: ${memberList}
-Discografía: ${albumList || 'sin álbumes registrados'}
-Último lanzamiento: ${data.albums.length ? data.albums[data.albums.length-1].title + ' (' + data.albums[data.albums.length-1].year + ')' : 'desconocido'}
-Wikipedia: ${data.wiki ? data.wiki.slice(0,500) : 'no disponible'}
-
-════ LO QUE ENCONTRÉ BUSCANDO EN LA WEB ════
-${webFindings || 'No se pudo obtener información adicional de la web.'}
-════════════════════════════════════════════
-
-Con TODA esa información, generá un JSON con exactamente estas claves.
-Respondé SOLO el JSON, sin texto previo, sin backticks, sin explicaciones:
-
-{
-  "portada_tag": "frase gancho de 5-8 palabras para la portada del carrusel. Tiene que generar curiosidad o emoción. No uses el nombre de la banda aquí.",
-  "historia": "Mínimo 3 párrafos bien desarrollados. Contá el origen con contexto (qué pasaba en esa ciudad/escena musical), cómo se formaron, los momentos clave de su carrera, la evolución. Incluí anécdotas si las encontraste. Que se sienta como una historia, no un currículum. Máximo 380 palabras.",
-  "estilo": "2 párrafos. Primero describí el sonido con metáforas y referencias concretas (qué sentís al escucharlos, a qué suena, qué bandas evoca sin decir 'suena a X'). Segundo párrafo sobre la propuesta lírica o conceptual. Máximo 180 palabras.",
-  "integrantes_intro": "Una oración que humanice a los integrantes antes de listarlos. Algo que hable de lo que cada uno aporta al colectivo.",
-  "discografia_intro": "2 oraciones que enmarquen la discografía como un viaje artístico, mencionando algún hito o evolución concreta.",
-  "ultimo_contexto": "3 oraciones sobre el último lanzamiento: qué representa para la banda, qué cambió o maduró, por qué vale la pena escucharlo ahora. Con convicción.",
-  "cierre": "2 oraciones de cierre. Una que invite a escucharlos con genuina recomendación. Otra que sea un dato curioso o reflexión que deje pensando."
-}`;
-
-  try {
-    const writeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: writePrompt }]
-      })
-    });
-
-    if (!writeRes.ok) throw new Error('Claude API ' + writeRes.status);
-    const writeData = await writeRes.json();
-    const raw   = (writeData.content || []).map(c => c.text || '').join('');
-    const clean = raw.replace(/```json|```/gi, '').trim();
-
-    // Extraer JSON incluso si hay texto rodeándolo
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON en respuesta');
-    return JSON.parse(jsonMatch[0]);
-
-  } catch(e) {
-    console.warn('Redacción falló, usando datos crudos:', e.message);
-    return null;
-  }
+// ── MODAL (#4) ───────────────────────────────────────────────────
+function openModal(i){S.modalIndex=i;document.getElementById('previewModal').classList.add('open');renderModal();}
+function closeModal(){document.getElementById('previewModal').classList.remove('open');}
+function navModal(d){const ord=getOrderedIdx(),cur=ord.findIndex(x=>x.originalIndex===S.modalIndex),next=(cur+d+ord.length)%ord.length;S.modalIndex=ord[next].originalIndex;renderModal();}
+function renderModal(){
+  const mc=document.getElementById('modalCanvas'),ord=getOrderedIdx(),cur=ord.findIndex(x=>x.originalIndex===S.modalIndex);
+  const {slide}=ord[cur]||ord[0];
+  document.getElementById('modalCounter').textContent=`${cur+1} / ${ord.length}`;
+  document.fonts.ready.then(()=>{drawSlide(mc,slide,cur,ord.length);const {w}=getDims(),mw=Math.min(window.innerWidth*.88,800);mc.style.width=Math.min(mw,w)+'px';mc.style.height='auto';});
 }
 
-// ============================================================================
-//  RENDER: SOLO TEXTO
-// ============================================================================
-function renderTextSlides() {
-  const output = document.getElementById('output');
-  let html = `
-    <div class="order-banner">Arrastrá las tarjetas para reordenar el carrusel</div>
-    <div class="download-all">
-      <button class="btn secondary" id="copyAllBtn">Copiar todas las slides (en orden)</button>
-    </div>
-    <div class="text-output" id="slidesContainer">`;
-
-  state.slides.forEach((slide, i) => {
-    html += `
-      <div class="text-slide" draggable="true" data-index="${i}">
-        <div class="drag-handle">Arrastrar</div>
-        <div class="slide-num">SLIDE <span class="slide-pos">${i + 1}</span>/${state.slides.length}</div>
-        <h4>${escapeHTML(slide.title)}</h4>
-        <p>${escapeHTML(slide.body)}</p>
-        <button class="copy-btn" data-i="${i}">Copiar</button>
-      </div>`;
-  });
-  html += '</div>';
-  output.innerHTML = html;
-
-  enableDragAndDrop('#slidesContainer', '.text-slide', () => {
-    updateSlidePositions();
-  });
-
-  output.querySelectorAll('.copy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const i = parseInt(btn.dataset.i);
-      const s = state.slides[i];
-      navigator.clipboard.writeText(`${s.title}\n\n${s.body}`);
-      btn.textContent = '✓ Copiado';
-      setTimeout(() => btn.textContent = 'Copiar', 1500);
-    });
-  });
-  document.getElementById('copyAllBtn').addEventListener('click', () => {
-    const ordered = getOrderedSlides();
-    const all = ordered.map((s, i) => `===== SLIDE ${i + 1} =====\n${s.title}\n\n${s.body}`).join('\n\n');
-    navigator.clipboard.writeText(all);
-    document.getElementById('copyAllBtn').textContent = '✓ Todo copiado';
-    setTimeout(() => document.getElementById('copyAllBtn').textContent = 'Copiar todas las slides (en orden)', 1500);
+// ── DRAG & DROP ──────────────────────────────────────────────────
+let dragSrc=null;
+function enableDnD(cSel,iSel,cb){
+  const c=document.querySelector(cSel); if(!c)return;
+  c.querySelectorAll(iSel).forEach(item=>{
+    item.addEventListener('dragstart',e=>{dragSrc=item;item.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    item.addEventListener('dragend',()=>{item.classList.remove('dragging');c.querySelectorAll(iSel).forEach(e=>e.classList.remove('drag-over'));if(cb)cb();});
+    item.addEventListener('dragover',e=>{e.preventDefault();if(item!==dragSrc)item.classList.add('drag-over');});
+    item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
+    item.addEventListener('drop',e=>{e.preventDefault();item.classList.remove('drag-over');if(dragSrc&&item!==dragSrc){const after=(e.clientY-item.getBoundingClientRect().top)>item.getBoundingClientRect().height/2;item.parentNode.insertBefore(dragSrc,after?item.nextSibling:item);}});
   });
 }
+function getOrdered(){const c=document.getElementById('slidesContainer');if(!c)return S.slides;return[...c.querySelectorAll('[data-index]')].map(e=>S.slides[parseInt(e.dataset.index)]);}
+function getOrderedIdx(){const c=document.getElementById('slidesContainer');if(!c)return S.slides.map((s,i)=>({slide:s,originalIndex:i}));return[...c.querySelectorAll('[data-index]')].map(e=>({slide:S.slides[parseInt(e.dataset.index)],originalIndex:parseInt(e.dataset.index)}));}
+function updatePos(){const c=document.getElementById('slidesContainer');if(!c)return;[...c.querySelectorAll('[data-index]')].forEach((e,i)=>e.querySelectorAll('.slide-pos').forEach(p=>p.textContent=i+1));}
+function redrawAll(){document.fonts.ready.then(()=>getOrderedIdx().forEach(({slide,originalIndex},p)=>{const cv=document.getElementById(`cv-${originalIndex}`);if(cv)drawSlide(cv,slide,p,S.slides.length);}));}
 
-// ============================================================================
-//  RENDER: IMAGEN + TEXTO (canvas)
-// ============================================================================
-function getAspectDims() {
-  switch(state.aspect) {
-    case '1:1': return { w: 1080, h: 1080 };
-    case '4:5': return { w: 1080, h: 1350 };
-    case '9:16': return { w: 1080, h: 1920 };
-    default: return { w: 1080, h: 1080 };
-  }
+// ── CANVAS DRAWING ───────────────────────────────────────────────
+function drawSlide(canvas,slide,index,total){
+  const {w,h}=getDims(); canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  const pad=parseInt(document.getElementById('padding').value)||80;
+  const ff=document.getElementById('fontFamily').value;
+  const fsBase=parseInt(document.getElementById('fontSize').value)||42;
+  const tsBase=parseInt(document.getElementById('titleSize').value)||86;
+  const tc=document.getElementById('textColor').value;
+  const ac=document.getElementById('accentColor').value;
+  const lh=parseFloat(document.getElementById('lineHeight').value)/100||1.4;
+  const showImg=S.bandImgMode!=='off';
+  drawBG(ctx,w,h);
+  drawDeco(ctx,w,h,ac,index);
+  // AUTO-FIT (#3)
+  const fs=autoFit(ctx,slide.body,fsBase,w-pad*2.6,h,ff,lh);
+  const ts=Math.min(tsBase,w*.085);
+  const titleUp=slide.title.toUpperCase();
+  const isPortada=index===0;
+  const isIntegr=titleUp.includes('INTEGRANTE');
+  const isUltimo=titleUp.includes('ÚLTIMO')||titleUp.includes('ULTIMO')||titleUp.includes('LANZAMIENTO');
+  if(isPortada)drawPortada(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh,showImg);
+  else if(isIntegr)drawIntegrantes(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh);
+  else if(isUltimo)drawUltimo(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh,showImg);
+  else drawGenerico(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh);
+  drawFooter(ctx,w,h,pad,tc,index,total);
 }
 
-function renderImageSlides() {
-  const output = document.getElementById('output');
-  let html = `
-    <div class="order-banner">Arrastrá las tarjetas para reordenar el carrusel</div>
-    <div class="download-all">
-      <button class="btn secondary" id="downloadAllBtn">Descargar todas las imágenes (en orden)</button>
-    </div>
-    <div class="images-grid" id="slidesContainer">`;
-
-  state.slides.forEach((slide, i) => {
-    html += `
-      <div class="image-card" draggable="true" data-index="${i}">
-        <div class="label-row">
-          <span class="slide-label">Slide <span class="slide-pos">${i + 1}</span>/${state.slides.length}</span>
-          <span>${getAspectDims().w}×${getAspectDims().h}</span>
-        </div>
-        <canvas id="canvas-${i}"></canvas>
-        <button class="download" data-i="${i}">Descargar PNG</button>
-      </div>`;
-  });
-  html += '</div>';
-  output.innerHTML = html;
-
-  // Dibujar cada canvas con su posición actual
-  state.slides.forEach((slide, i) => {
-    drawSlide(document.getElementById(`canvas-${i}`), slide, i);
-  });
-
-  enableDragAndDrop('#slidesContainer', '.image-card', () => {
-    updateSlidePositions();
-    redrawAllCanvases();
-  });
-
-  output.querySelectorAll('.download').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const i = parseInt(btn.dataset.i);
-      const canvas = document.getElementById(`canvas-${i}`);
-      // Posición visible actual (puede haber cambiado por drag)
-      const card = canvas.closest('.image-card');
-      const pos = parseInt(card.querySelector('.slide-pos').textContent);
-      const link = document.createElement('a');
-      link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${pos}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-  });
-
-  document.getElementById('downloadAllBtn').addEventListener('click', () => {
-    const ordered = getOrderedSlidesWithOriginalIndex();
-    ordered.forEach((item, newPos) => {
-      setTimeout(() => {
-        const canvas = document.getElementById(`canvas-${item.originalIndex}`);
-        const link = document.createElement('a');
-        link.download = `${(state.bandData.name || 'banda').replace(/[^a-z0-9]/gi, '_')}_slide_${newPos + 1}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }, newPos * 300);
-    });
-  });
+// AUTO-FIT font (#3)
+function autoFit(ctx,body,baseFs,maxW,h,ff,lh){
+  let fs=baseFs;
+  const MIN=16,paras=body.split('\n');
+  while(fs>MIN){
+    ctx.font=`400 ${fs}px ${ff}`;
+    let lines=0; paras.forEach(p=>{if(!p.trim()){lines++;return;}lines+=wrapText(ctx,p,maxW).length;});
+    if(lines*fs*lh+200<=h*.82)break; fs=Math.max(MIN,fs-2);
+  } return fs;
 }
 
-// ============================================================================
-//  DRAG & DROP — reordenar slides
-// ============================================================================
-let dragState = { source: null };
-
-function enableDragAndDrop(containerSel, itemSel, onReorder) {
-  const container = document.querySelector(containerSel);
-  if (!container) return;
-
-  container.querySelectorAll(itemSel).forEach(item => {
-    item.addEventListener('dragstart', (e) => {
-      dragState.source = item;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      container.querySelectorAll(itemSel).forEach(el => el.classList.remove('drag-over'));
-      if (onReorder) onReorder();
-    });
-    item.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      if (item !== dragState.source) item.classList.add('drag-over');
-    });
-    item.addEventListener('dragleave', () => {
-      item.classList.remove('drag-over');
-    });
-    item.addEventListener('drop', (e) => {
-      e.preventDefault();
-      item.classList.remove('drag-over');
-      if (dragState.source && item !== dragState.source) {
-        // Insertar antes o después según posición vertical del mouse
-        const rect = item.getBoundingClientRect();
-        const after = (e.clientY - rect.top) > rect.height / 2;
-        if (after) item.parentNode.insertBefore(dragState.source, item.nextSibling);
-        else item.parentNode.insertBefore(dragState.source, item);
-      }
-    });
-  });
+function drawBG(ctx,w,h){
+  ctx.fillStyle=document.getElementById('bgSolidColor').value;
+  ctx.fillRect(0,0,w,h);
+  if(!S.bgImage||S.bgStyle==='solid')return;
+  const img=S.bgImage,scale=Math.max(w/img.width,h/img.height);
+  const sw=img.width*scale,sh=img.height*scale,dx=(w-sw)/2,dy=(h-sh)/2;
+  const intensity=parseInt(document.getElementById('bgIntensity').value)/100;
+  if(S.bgStyle==='blur'){ctx.filter=`blur(${Math.round(intensity*30)}px)`;ctx.drawImage(img,dx,dy,sw,sh);ctx.filter='none';ctx.fillStyle=`rgba(0,0,0,${intensity*.35})`;}
+  else{ctx.drawImage(img,dx,dy,sw,sh);ctx.fillStyle=`rgba(0,0,0,${intensity})`;}
+  ctx.fillRect(0,0,w,h);
 }
 
-function getOrderedSlides() {
-  // Lee el orden actual del DOM y devuelve los slides en ese orden
-  const container = document.getElementById('slidesContainer');
-  if (!container) return state.slides;
-  const ordered = [];
-  container.querySelectorAll('[data-index]').forEach(el => {
-    const i = parseInt(el.dataset.index);
-    ordered.push(state.slides[i]);
-  });
-  return ordered;
-}
-
-function getOrderedSlidesWithOriginalIndex() {
-  const container = document.getElementById('slidesContainer');
-  if (!container) return state.slides.map((s, i) => ({ slide: s, originalIndex: i }));
-  const ordered = [];
-  container.querySelectorAll('[data-index]').forEach(el => {
-    const i = parseInt(el.dataset.index);
-    ordered.push({ slide: state.slides[i], originalIndex: i });
-  });
-  return ordered;
-}
-
-function updateSlidePositions() {
-  // Renumera los badges según el orden actual del DOM
-  const container = document.getElementById('slidesContainer');
-  if (!container) return;
-  const items = container.querySelectorAll('[data-index]');
-  const total = items.length;
-  items.forEach((el, idx) => {
-    const posEls = el.querySelectorAll('.slide-pos');
-    posEls.forEach(p => p.textContent = idx + 1);
-  });
-}
-
-function redrawAllCanvases() {
-  // En modo imagen, redibuja todos los canvas con la posición actual
-  // (para que el footer "01/04" refleje el nuevo orden)
-  const ordered = getOrderedSlidesWithOriginalIndex();
-  ordered.forEach((item, newPos) => {
-    const canvas = document.getElementById(`canvas-${item.originalIndex}`);
-    if (canvas) drawSlide(canvas, item.slide, newPos, ordered.length);
-  });
-}
-
-// ============================================================================
-//  RENDER CANVAS — Layout editorial estilo carrusel Instagram
-// ============================================================================
-function drawSlide(canvas, slide, index, totalOverride) {
-  const { w, h } = getAspectDims();
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-
-  // Opciones de estilo
-  const padding    = parseInt(document.getElementById('padding').value);
-  const fontFamily = document.getElementById('fontFamily').value;
-  const fontSize   = parseInt(document.getElementById('fontSize').value);
-  const titleSize  = parseInt(document.getElementById('titleSize').value);
-  const textColor  = document.getElementById('textColor').value;
-  const accentColor= document.getElementById('accentColor').value;
-  const lhRatio    = parseFloat(document.getElementById('lineHeight').value) / 100;
-  const total      = totalOverride || state.slides.length;
-  const showBandImg = state.bandImgMode !== 'off';
-
-  // Detectar tipo de slide por título para asignar layout
-  const titleUp = slide.title.toUpperCase();
-  const isPortada   = index === 0;
-  const isIntegr    = titleUp.includes('INTEGRANTE') || titleUp.includes('MIEMBRO');
-  const isUltimo    = titleUp.includes('ÚLTIMO') || titleUp.includes('ULTIMO') || titleUp.includes('LANZAMIENTO');
-  const isHistoria  = titleUp.includes('HISTORIA') || titleUp.includes('ORIGEN');
-  const isDiscog    = titleUp.includes('DISCOGRAF');
-
-  // === 1. FONDO BASE ===
-  drawBackground(ctx, w, h);
-
-  // === 2. TEXTURA DECORATIVA (manchas, ruido) ===
-  drawDecorations(ctx, w, h, accentColor, index);
-
-  // === 3. LAYOUT POR TIPO ===
-  if (isPortada) {
-    drawLayoutPortada(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio, showBandImg);
-  } else if (isIntegr) {
-    drawLayoutIntegrantes(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio);
-  } else if (isUltimo) {
-    drawLayoutUltimo(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio, showBandImg);
-  } else {
-    drawLayoutGenerico(ctx, w, h, slide, padding, fontFamily, fontSize, titleSize, textColor, accentColor, lhRatio);
-  }
-
-  // === 4. FOOTER ===
-  drawSlideFooter(ctx, w, h, padding, textColor, index, total);
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  DECORACIONES — manchas y líneas estilo poster rock
-// ─────────────────────────────────────────────────────────────────
-function drawDecorations(ctx, w, h, accentColor, slideIndex) {
+function drawDeco(ctx,w,h,ac,idx){
   ctx.save();
-
-  // Líneas verticales laterales decorativas (numeración estilo BTS)
-  const lineColor = hexToRgba(accentColor, 0.12);
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 4; i++) {
-    const x = w * 0.04 + i * 6;
-    ctx.beginPath(); ctx.moveTo(x, h * 0.06); ctx.lineTo(x, h * 0.94); ctx.stroke();
-  }
-  for (let i = 0; i < 4; i++) {
-    const x = w * 0.96 - i * 6;
-    ctx.beginPath(); ctx.moveTo(x, h * 0.06); ctx.lineTo(x, h * 0.94); ctx.stroke();
-  }
-
-  // Mancha de color arriba izquierda (tipo splash)
-  ctx.globalAlpha = 0.06 + (slideIndex % 3) * 0.02;
-  ctx.fillStyle = accentColor;
-  ctx.beginPath();
-  ctx.ellipse(w * 0.12, h * 0.08, w * 0.18, h * 0.08, -0.4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Mancha abajo derecha
-  ctx.globalAlpha = 0.05;
-  ctx.beginPath();
-  ctx.ellipse(w * 0.88, h * 0.92, w * 0.14, h * 0.07, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Línea horizontal accent arriba
-  ctx.globalAlpha = 0.7;
-  ctx.strokeStyle = accentColor;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.07, h * 0.055);
-  ctx.lineTo(w * 0.26, h * 0.055);
-  ctx.stroke();
-
-  // Zigzag decorativo tipo onda — arriba izquierda
-  ctx.globalAlpha = 0.55;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  let zx = w * 0.07, zy = h * 0.04;
-  const zStep = w * 0.025, zAmp = h * 0.018;
-  for (let i = 0; i < 6; i++) {
-    ctx.lineTo(zx + zStep, zy + (i % 2 === 0 ? -zAmp : zAmp));
-    zx += zStep;
-  }
-  ctx.stroke();
-
+  ctx.strokeStyle=h2r(ac,.12);ctx.lineWidth=1;
+  for(let i=0;i<4;i++){const x=w*.04+i*6;ctx.beginPath();ctx.moveTo(x,h*.06);ctx.lineTo(x,h*.94);ctx.stroke();}
+  for(let i=0;i<4;i++){const x=w*.96-i*6;ctx.beginPath();ctx.moveTo(x,h*.06);ctx.lineTo(x,h*.94);ctx.stroke();}
+  ctx.globalAlpha=.06+(idx%3)*.02;ctx.fillStyle=ac;ctx.beginPath();ctx.ellipse(w*.12,h*.08,w*.18,h*.08,-.4,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.05;ctx.beginPath();ctx.ellipse(w*.88,h*.92,w*.14,h*.07,.3,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.7;ctx.strokeStyle=ac;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(w*.07,h*.055);ctx.lineTo(w*.26,h*.055);ctx.stroke();
+  ctx.lineWidth=2.5;ctx.beginPath();let zx=w*.07,zy=h*.04,zS=w*.025,zA=h*.018;for(let i=0;i<6;i++){ctx.lineTo(zx+zS,zy+(i%2===0?-zA:zA));zx+=zS;}ctx.stroke();
   ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  LAYOUT PORTADA — foto banda izquierda / texto derecha
-// ─────────────────────────────────────────────────────────────────
-function drawLayoutPortada(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh, showImg) {
-  const hasImg = showImg && state.bandImg;
-
-  if (hasImg) {
-    // Imagen ocupa mitad izquierda con clip redondeado
-    const imgW = w * 0.48;
-    const imgH = h * 0.62;
-    const imgX = pad * 1.2;
-    const imgY = (h - imgH) / 2;
-
-    ctx.save();
-    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
-    ctx.clip();
-    drawImageCover(ctx, state.bandImg, imgX, imgY, imgW, imgH);
-    ctx.restore();
-
-    // Borde sutil de la imagen
-    ctx.strokeStyle = ac;
-    ctx.lineWidth = 2;
-    ctx.save();
-    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
-    ctx.stroke();
-    ctx.restore();
-
-    // Texto lado derecho
-    const tx = imgX + imgW + pad * 0.7;
-    const tw = w - tx - pad * 0.8;
-    drawTextBlock(ctx, slide, tx, pad, tw, h, ff, fs, ts, tc, ac, lh, 'left', 'middle');
-  } else {
-    // Sin imagen: texto centrado grande tipo portada
-    const tagLine = 'HOY TE INVITAMOS\nA CONOCER A:';
-    ctx.fillStyle = tc;
-    ctx.globalAlpha = 0.6;
-    ctx.font = `700 ${Math.round(fs * 0.7)}px ${ff}`;
-    ctx.textAlign = 'center';
-    const tagLines = tagLine.split('\n');
-    let ty = h * 0.22;
-    tagLines.forEach(l => { ctx.fillText(l.toUpperCase(), w / 2, ty); ty += fs * 1.1; });
-    ctx.globalAlpha = 1;
-
-    // Nombre grande centrado
-    ctx.fillStyle = ac;
-    ctx.font = `800 ${ts}px ${ff}`;
-    ctx.textAlign = 'center';
-    const nameLines = wrapText(ctx, slide.title.toUpperCase(), w - pad * 2.5);
-    let ny = h * 0.52;
-    nameLines.forEach(l => { ctx.fillText(l, w / 2, ny); ny += ts * lh; });
-
-    // Subtexto (body primer párrafo)
-    const firstLine = slide.body.split('\n').filter(Boolean)[0] || '';
-    ctx.fillStyle = tc;
-    ctx.globalAlpha = 0.75;
-    ctx.font = `400 ${Math.round(fs * 0.82)}px ${ff}`;
-    const subLines = wrapText(ctx, firstLine, w - pad * 3);
-    let sy = ny + ts * 0.4;
-    subLines.slice(0, 3).forEach(l => { ctx.fillText(l, w / 2, sy); sy += fs * lh; });
-    ctx.globalAlpha = 1;
+// Layouts con adaptación por proporción (#8)
+function drawPortada(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh,showImg){
+  const hasImg=showImg&&S.bandImg,is916=S.aspect==='9:16';
+  if(hasImg&&!is916){
+    const iW=w*.46,iH=h*.62,iX=pad*1.2,iY=(h-iH)/2;
+    ctx.save();rr(ctx,iX,iY,iW,iH,12);ctx.clip();imgCover(ctx,S.bandImg,iX,iY,iW,iH);ctx.restore();
+    ctx.strokeStyle=ac;ctx.lineWidth=2;ctx.save();rr(ctx,iX,iY,iW,iH,12);ctx.stroke();ctx.restore();
+    drawTB(ctx,slide,iX+iW+pad*.7,(h-h*.6)/2,w-iX-iW-pad*1.5,h*.6,ff,fs,ts,tc,ac,lh,'left','top');
+  }else if(hasImg&&is916){
+    const iW=w*.88,iH=h*.42,iX=(w-iW)/2,iY=h*.06;
+    ctx.save();rr(ctx,iX,iY,iW,iH,14);ctx.clip();imgCover(ctx,S.bandImg,iX,iY,iW,iH);ctx.restore();
+    ctx.strokeStyle=ac;ctx.lineWidth=2;ctx.save();rr(ctx,iX,iY,iW,iH,14);ctx.stroke();ctx.restore();
+    drawTB(ctx,slide,pad*1.2,iY+iH+pad*.6,w-pad*2.4,h-(iY+iH+pad*1.2),ff,fs,ts,tc,ac,lh,'center','top');
+  }else{
+    ctx.fillStyle=h2r(tc,.55);ctx.font=`700 ${Math.round(fs*.72)}px ${ff}`;ctx.textAlign='center';
+    ['HOY TE INVITAMOS','A CONOCER A:'].forEach((l,i)=>ctx.fillText(l,w/2,h*.2+i*fs*1.1));
+    ctx.fillStyle=ac;ctx.font=`800 ${ts}px ${ff}`;
+    const nls=wrapText(ctx,slide.title,w-pad*2.5);let ny=h*.46;nls.forEach(l=>{ctx.fillText(l,w/2,ny);ny+=ts*lh;});
+    ctx.fillStyle=tc;ctx.globalAlpha=.75;ctx.font=`400 ${Math.round(fs*.82)}px ${ff}`;
+    const bl=wrapText(ctx,slide.body.split('\n').filter(Boolean)[0]||'',w-pad*3);let sy=ny+ts*.4;bl.slice(0,3).forEach(l=>{ctx.fillText(l,w/2,sy);sy+=fs*lh;});ctx.globalAlpha=1;
   }
 }
-
-// ─────────────────────────────────────────────────────────────────
-//  LAYOUT INTEGRANTES — lista con bullet decorativo
-// ─────────────────────────────────────────────────────────────────
-function drawLayoutIntegrantes(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh) {
-  // Título en la parte superior
-  const titleY = pad + ts;
-  ctx.fillStyle = ac;
-  ctx.font = `800 ${ts}px ${ff}`;
-  ctx.textAlign = 'left';
-  const titleLines = wrapText(ctx, slide.title.toUpperCase(), w - pad * 2.2);
-  let y = titleY;
-  titleLines.forEach(l => { ctx.fillText(l, pad * 1.3, y); y += ts * lh; });
-
-  // Línea separadora
-  ctx.strokeStyle = ac;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(pad * 1.3, y + 8);
-  ctx.lineTo(pad * 1.3 + 80, y + 8);
-  ctx.stroke();
-  y += 30;
-
-  // Lista de integrantes — cada uno en su fila
-  const lines = slide.body.split('\n').filter(l => l.trim());
-  const itemFs = Math.min(fs, Math.floor((h - y - pad * 2) / Math.max(lines.length, 1) / lh * 0.9));
-  ctx.font = `400 ${itemFs}px ${ff}`;
-
-  lines.forEach((line, i) => {
-    // Bullet cuadrado
-    ctx.fillStyle = ac;
-    ctx.fillRect(pad * 1.3, y - itemFs * 0.7, 6, itemFs * 0.75);
-
-    // Texto
-    ctx.fillStyle = tc;
-    const clean = line.replace(/^•\s*/, '');
-    const linesWrapped = wrapText(ctx, clean, w - pad * 2.2 - 18);
-    linesWrapped.forEach((l, j) => {
-      ctx.fillText(l, pad * 1.3 + 18, y + j * itemFs * lh);
-    });
-    y += (linesWrapped.length * itemFs * lh) + itemFs * 0.3;
-  });
+function drawIntegrantes(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh){
+  const iP=pad*1.3,iW=w-iP*2;
+  ctx.fillStyle=ac;ctx.font=`800 ${ts}px ${ff}`;ctx.textAlign='left';
+  const tls=wrapText(ctx,slide.title,iW);let y=pad+ts;tls.forEach(l=>{ctx.fillText(l,iP,y);y+=ts*lh;});
+  ctx.strokeStyle=ac;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(iP,y+8);ctx.lineTo(iP+80,y+8);ctx.stroke();y+=30;
+  const lines=slide.body.split('\n').filter(l=>l.trim());
+  const iFs=Math.min(fs,Math.floor((h-y-pad*2)/Math.max(lines.length,1)/lh*.88));
+  ctx.font=`400 ${iFs}px ${ff}`;
+  lines.forEach(line=>{ctx.fillStyle=ac;ctx.fillRect(iP,y-iFs*.7,6,iFs*.75);ctx.fillStyle=tc;const lws=wrapText(ctx,line.replace(/^•\s*/,''),iW-18);lws.forEach((l,j)=>ctx.fillText(l,iP+18,y+j*iFs*lh));y+=(lws.length*iFs*lh)+iFs*.3;});
+}
+function drawUltimo(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh,showImg){
+  const hasImg=showImg&&S.bandImg,bW=w*.7,bH=h*.42,bX=(w-bW)/2,bY=pad*1.2;
+  if(hasImg){ctx.save();rr(ctx,bX,bY,bW,bH,10);ctx.clip();imgCover(ctx,S.bandImg,bX,bY,bW,bH);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(bX,bY,bW,bH);ctx.restore();ctx.fillStyle=ac;ctx.font=`800 ${Math.round(ts*.62)}px ${ff}`;ctx.textAlign='center';ctx.fillText((S.bandData?.name||'').toUpperCase(),w/2,bY+bH*.52);}
+  else{ctx.strokeStyle=ac;ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.save();rr(ctx,bX,bY,bW,bH,10);ctx.stroke();ctx.restore();ctx.setLineDash([]);ctx.fillStyle=h2r(ac,.15);ctx.save();rr(ctx,bX,bY,bW,bH,10);ctx.fill();ctx.restore();ctx.fillStyle=ac;ctx.font=`800 ${Math.round(ts*.5)}px ${ff}`;ctx.textAlign='center';ctx.fillText('ÚLTIMO LANZAMIENTO',w/2,bY+bH*.55);}
+  ctx.fillStyle=h2r(tc,.45);ctx.font=`500 ${Math.round(fs*.58)}px 'JetBrains Mono',monospace`;ctx.textAlign='center';ctx.fillText((S.bandData?.name||'').toUpperCase()+' — SPOTIFY / YOUTUBE',w/2,bY+bH+22);
+  ctx.fillStyle=tc;ctx.font=`400 ${fs}px ${ff}`;ctx.textAlign='center';let ly=bY+bH+55;
+  slide.body.split('\n').filter(Boolean).forEach(p=>wrapText(ctx,p,w-pad*2.5).forEach(l=>{ctx.fillText(l,w/2,ly);ly+=fs*lh;}));
+}
+function drawGenerico(ctx,w,h,slide,pad,ff,fs,ts,tc,ac,lh){
+  const iP=pad*1.3,iW=w-iP*2;
+  ctx.fillStyle=ac;ctx.font=`800 ${ts}px ${ff}`;ctx.textAlign='left';
+  const tls=wrapText(ctx,slide.title.toUpperCase(),iW);let y=pad+ts;tls.forEach(l=>{ctx.fillText(l,iP,y);y+=ts*lh;});
+  ctx.strokeStyle=ac;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(iP,y+10);ctx.lineTo(iP+70,y+10);ctx.stroke();y+=30;
+  ctx.font=`400 ${fs}px ${ff}`;
+  slide.body.split('\n').forEach(para=>{if(!para.trim()){y+=fs*.5;return;}ctx.fillStyle=tc;wrapText(ctx,para,iW).forEach(l=>{if(y+fs>h-pad*1.5)return;ctx.fillText(l,iP,y);y+=fs*lh;});});
+}
+function drawTB(ctx,slide,x,topY,maxW,maxH,ff,fs,ts,tc,ac,lh,align,valign){
+  ctx.textAlign=align;const ax=align==='center'?x+maxW/2:align==='right'?x+maxW:x;
+  ctx.font=`800 ${ts}px ${ff}`;const tls=wrapText(ctx,slide.title.toUpperCase(),maxW),tH=tls.length*ts*lh;
+  ctx.font=`400 ${fs}px ${ff}`;const bls=[];slide.body.split('\n').forEach(p=>{if(!p.trim()){bls.push('');return;}wrapText(ctx,p,maxW).forEach(l=>bls.push(l));});
+  const bH=bls.length*fs*lh,gap=fs*.8,tot=tH+gap+bH;
+  let sY=valign==='top'?topY:valign==='bottom'?topY+maxH-tot:(topY+(maxH-tot)/2);
+  ctx.fillStyle=ac;ctx.font=`800 ${ts}px ${ff}`;let y=sY+ts;tls.forEach(l=>{ctx.fillText(l,ax,y);y+=ts*lh;});
+  ctx.strokeStyle=ac;ctx.lineWidth=3;ctx.beginPath();const lx=align==='left'?x:align==='right'?x+maxW-70:x+maxW/2-35;ctx.moveTo(lx,y+8);ctx.lineTo(lx+70,y+8);ctx.stroke();y+=gap;
+  ctx.fillStyle=tc;ctx.font=`400 ${fs}px ${ff}`;y+=fs;bls.forEach(l=>{if(l)ctx.fillText(l,ax,y);y+=fs*lh;});
+}
+function drawFooter(ctx,w,h,pad,tc,index,total){
+  const fS=Math.max(18,w*.018);
+  ctx.save();ctx.globalAlpha=.45;ctx.fillStyle=tc;ctx.font=`500 ${fS}px 'JetBrains Mono',monospace`;
+  ctx.textAlign='left';ctx.fillText(`${String(index+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`,pad*.6+20,h-pad*.5);
+  ctx.textAlign='right';ctx.fillText('BAND·CAROUSEL',w-pad*.6-20,h-pad*.5);ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  LAYOUT ÚLTIMO LANZAMIENTO — imagen portada disco + texto
-// ─────────────────────────────────────────────────────────────────
-function drawLayoutUltimo(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh, showImg) {
-  const hasImg = showImg && state.bandImg;
+// ── HELPERS ──────────────────────────────────────────────────────
+function imgCover(ctx,img,x,y,w,h){const s=Math.max(w/img.width,h/img.height),sw=img.width*s,sh=img.height*s;ctx.drawImage(img,x+(w-sw)/2,y+(h-sh)/2,sw,sh);}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+function h2r(hex,alpha){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${alpha})`;}
+function wrapText(ctx,text,maxW){const words=text.split(' '),lines=[];let cur='';words.forEach(w=>{const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});if(cur)lines.push(cur);return lines;}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-  // Recuadro decorativo para imagen (álbum) o placeholder
-  const boxW = w * 0.7;
-  const boxH = h * 0.42;
-  const boxX = (w - boxW) / 2;
-  const boxY = pad * 1.2;
-
-  if (hasImg) {
-    ctx.save();
-    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
-    ctx.clip();
-    drawImageCover(ctx, state.bandImg, boxX, boxY, boxW, boxH);
-    // Overlay oscuro encima de la imagen
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(boxX, boxY, boxW, boxH);
-    ctx.restore();
-
-    // Nombre de la banda sobre la imagen
-    ctx.fillStyle = ac;
-    ctx.font = `800 ${Math.round(ts * 0.65)}px ${ff}`;
-    ctx.textAlign = 'center';
-    ctx.fillText(state.bandData.name.toUpperCase(), w / 2, boxY + boxH * 0.52);
-  } else {
-    // Placeholder geométrico
-    ctx.strokeStyle = ac;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 6]);
-    ctx.save();
-    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
-    ctx.stroke();
-    ctx.restore();
-    ctx.setLineDash([]);
-
-    ctx.fillStyle = hexToRgba(ac, 0.15);
-    ctx.save();
-    roundRect(ctx, boxX, boxY, boxW, boxH, 10);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = ac;
-    ctx.font = `800 ${Math.round(ts * 0.55)}px ${ff}`;
-    ctx.textAlign = 'center';
-    ctx.fillText('ÚLTIMO LANZAMIENTO', w / 2, boxY + boxH * 0.55);
-  }
-
-  // Caption debajo de la imagen
-  const captionY = boxY + boxH + 18;
-  ctx.fillStyle = hexToRgba(tc, 0.5);
-  ctx.font = `500 ${Math.round(fs * 0.62)}px 'JetBrains Mono', monospace`;
-  ctx.textAlign = 'center';
-  ctx.fillText(state.bandData ? state.bandData.name.toUpperCase() + ' — PUEDEN ENCONTRARLO EN SPOTIFY / YOUTUBE' : '', w / 2, captionY + 16);
-
-  // Texto del lanzamiento abajo
-  const textY = captionY + 50;
-  ctx.fillStyle = tc;
-  ctx.font = `400 ${fs}px ${ff}`;
-  ctx.textAlign = 'center';
-  const bodyLines = [];
-  slide.body.split('\n').filter(Boolean).forEach(p => {
-    wrapText(ctx, p, w - pad * 2.5).forEach(l => bodyLines.push(l));
-    bodyLines.push('');
-  });
-  let ly = textY;
-  bodyLines.forEach(l => {
-    if (l) ctx.fillText(l, w / 2, ly);
-    ly += fs * lh;
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  LAYOUT GENÉRICO — título + columna de texto
-// ─────────────────────────────────────────────────────────────────
-function drawLayoutGenerico(ctx, w, h, slide, pad, ff, fs, ts, tc, ac, lh) {
-  const innerPad = pad * 1.3;
-  const innerW = w - innerPad * 2;
-
-  // Título
-  ctx.fillStyle = ac;
-  ctx.font = `800 ${ts}px ${ff}`;
-  ctx.textAlign = 'left';
-  const titleLines = wrapText(ctx, slide.title.toUpperCase(), innerW);
-  let y = pad + ts;
-  titleLines.forEach(l => { ctx.fillText(l, innerPad, y); y += ts * lh; });
-
-  // Línea accent
-  ctx.strokeStyle = ac;
-  ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(innerPad, y + 10); ctx.lineTo(innerPad + 70, y + 10); ctx.stroke();
-  y += 30;
-
-  // Body — párrafos separados
-  const paragraphs = slide.body.split('\n');
-  ctx.font = `400 ${fs}px ${ff}`;
-  paragraphs.forEach(para => {
-    if (!para.trim()) { y += fs * 0.5; return; }
-    ctx.fillStyle = tc;
-    const paraLines = wrapText(ctx, para, innerW);
-    paraLines.forEach(l => {
-      if (y + fs > h - pad * 1.5) return; // no salir del canvas
-      ctx.fillText(l, innerPad, y);
-      y += fs * lh;
-    });
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  HELPER: bloque de texto con alineación y posición vertical
-// ─────────────────────────────────────────────────────────────────
-function drawTextBlock(ctx, slide, x, topPad, maxW, h, ff, fs, ts, tc, ac, lh, align, valign) {
-  ctx.textAlign = align;
-  const ax = align === 'center' ? x + maxW / 2 : align === 'right' ? x + maxW : x;
-
-  ctx.font = `800 ${ts}px ${ff}`;
-  const titleLines = wrapText(ctx, slide.title.toUpperCase(), maxW);
-  const titleH = titleLines.length * ts * lh;
-
-  ctx.font = `400 ${fs}px ${ff}`;
-  const bodyParagraphs = slide.body.split('\n');
-  const bodyLines = [];
-  bodyParagraphs.forEach(p => {
-    if (!p.trim()) { bodyLines.push(''); return; }
-    wrapText(ctx, p, maxW).forEach(l => bodyLines.push(l));
-  });
-  const bodyH = bodyLines.length * fs * lh;
-  const gap = fs * 0.8;
-  const totalH = titleH + gap + bodyH;
-
-  let startY;
-  if (valign === 'top') startY = topPad;
-  else if (valign === 'bottom') startY = h - topPad - totalH;
-  else startY = (h - totalH) / 2;
-
-  ctx.fillStyle = ac;
-  ctx.font = `800 ${ts}px ${ff}`;
-  let y = startY + ts;
-  titleLines.forEach(l => { ctx.fillText(l, ax, y); y += ts * lh; });
-
-  ctx.strokeStyle = ac;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  const lx = align === 'left' ? x : align === 'right' ? x + maxW - 70 : x + maxW / 2 - 35;
-  ctx.moveTo(lx, y + 8); ctx.lineTo(lx + 70, y + 8);
-  ctx.stroke();
-  y += gap;
-
-  ctx.fillStyle = tc;
-  ctx.font = `400 ${fs}px ${ff}`;
-  y += fs;
-  bodyLines.forEach(l => {
-    if (l) ctx.fillText(l, ax, y);
-    y += fs * lh;
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  FOOTER DEL SLIDE
-// ─────────────────────────────────────────────────────────────────
-function drawSlideFooter(ctx, w, h, pad, tc, index, total) {
-  const fSize = Math.max(18, w * 0.018);
-  ctx.save();
-  ctx.globalAlpha = 0.45;
-  ctx.fillStyle = tc;
-  ctx.font = `500 ${fSize}px 'JetBrains Mono', monospace`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`, pad * 0.6 + 20, h - pad * 0.5);
-  ctx.textAlign = 'right';
-  ctx.fillText('BAND·CAROUSEL', w - pad * 0.6 - 20, h - pad * 0.5);
-  ctx.restore();
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────────────────────────────
-function drawImageCover(ctx, img, x, y, w, h) {
-  const scale = Math.max(w / img.width, h / img.height);
-  const sw = img.width * scale;
-  const sh = img.height * scale;
-  const sx = x + (w - sw) / 2;
-  const sy = y + (h - sh) / 2;
-  ctx.drawImage(img, sx, sy, sw, sh);
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function hexToRgba(hex, alpha) {
-  const r = parseInt(hex.slice(1,3),16);
-  const g = parseInt(hex.slice(3,5),16);
-  const b = parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function drawBackground(ctx, w, h) {
-  // Fallback sólido
-  const bgColor = document.getElementById('bgSolidColor').value;
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, w, h);
-
-  if (!state.bgImage) return;
-
-  const intensity = parseInt(document.getElementById('bgIntensity').value) / 100;
-
-  // Dibuja imagen con cover
-  const img = state.bgImage;
-  const scale = Math.max(w / img.width, h / img.height);
-  const drawW = img.width * scale;
-  const drawH = img.height * scale;
-  const dx = (w - drawW) / 2;
-  const dy = (h - drawH) / 2;
-
-  if (state.bgStyle === 'solid') {
-    // Solo color sólido, no se dibuja imagen
-    return;
-  }
-
-  if (state.bgStyle === 'blur') {
-    ctx.filter = `blur(${Math.round(intensity * 30)}px)`;
-    ctx.drawImage(img, dx, dy, drawW, drawH);
-    ctx.filter = 'none';
-    // Capa de oscurecimiento sutil
-    ctx.fillStyle = `rgba(0,0,0,${intensity * 0.35})`;
-    ctx.fillRect(0, 0, w, h);
-  } else {
-    // overlay
-    ctx.drawImage(img, dx, dy, drawW, drawH);
-    ctx.fillStyle = `rgba(0,0,0,${intensity})`;
-    ctx.fillRect(0, 0, w, h);
-  }
-}
-
-function wrapText(ctx, text, maxWidth) {
-  const words = text.split(' ');
-  const lines = [];
-  let current = '';
-  for (const word of words) {
-    const test = current ? current + ' ' + word : word;
-    if (ctx.measureText(test).width > maxWidth && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = test;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
-function escapeHTML(str) {
-  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ============================================================================
-//  TOGGLE PANEL MOBILE
-// ============================================================================
-(function() {
-  const toggle = document.getElementById('panelToggle');
-  const body   = document.getElementById('panelBody');
-  const icon   = document.getElementById('panelIcon');
-  if (!toggle) return;
-
-  toggle.addEventListener('click', () => {
-    const isOpen = body.classList.toggle('open');
-    icon.classList.toggle('open', isOpen);
-  });
+// ── PANEL TOGGLE MOBILE ──────────────────────────────────────────
+(()=>{
+  const t=document.getElementById('panelToggle'),b=document.getElementById('panelBody'),i=document.getElementById('panelIcon');
+  if(!t)return;
+  t.addEventListener('click',()=>{const o=b.classList.toggle('open');i.classList.toggle('open',o);});
 })();
 </script>
-
 </body>
 </html>
